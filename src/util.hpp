@@ -9,6 +9,7 @@ public:
     SDL_Color sidebar_text_color_highlighted;
 
     bool mouse_select;
+    bool debug;
 
 
     Config();

@@ -15,6 +15,7 @@ extern Config config;
 
 Config::Config()
 {
+    debug = false;
     sidebar_highlight_color = {0x00, 0x00, 0x00, 0xFF};
     sidebar_text_color = {0xFF, 0xFF, 0xFF, 0xFF};
     sidebar_text_color_highlighted = {0xFF, 0xFF, 0xFF, 0xFF};
@@ -56,9 +57,8 @@ static int handler(void* user, const char* section, const char* name, const char
             hex_to_color(value, config.sidebar_text_color_highlighted);
         }
     }
+    return 0;
 }
-
-
 
 
 // Calculates the length of a utf-8 encoded C-style string

@@ -24,4 +24,3 @@ configure_file(${PROJECT_SOURCE_DIR}/config/layout.xml.in ${PROJECT_BINARY_DIR}/
 configure_file(${PROJECT_SOURCE_DIR}/config/config.ini.in ${PROJECT_BINARY_DIR}/config.ini)
 
 add_subdirectory(src)
-

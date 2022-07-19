@@ -511,7 +511,7 @@ void Layout::parse(const char *file)
         current_menu = (Menu*) *current_entry;
         visible_menus.insert(current_menu);
     }
-    spdlog::debug("Sucessfully parsed layout file");
+    spdlog::debug("Successfully parsed layout file");
 }
 
 void SidebarHighlight::render_surface(int w, int h, int rx)
@@ -642,7 +642,7 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     highlight_x_advance = card_w + card_spacing;
     highlight_y_advance = card_h + card_spacing;
 
-    spdlog::debug("Sucessfully rendered surfaces");
+    spdlog::debug("Successfully rendered surfaces");
 }
 
 

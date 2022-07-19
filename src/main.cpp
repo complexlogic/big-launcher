@@ -1,4 +1,5 @@
 #include <memory>
+#include <getopt.h>
 #include <fmt/core.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -7,6 +8,7 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 
 #include <lconfig.h>
 #include "main.hpp"
@@ -18,13 +20,6 @@ Display display;
 Config config;
 Ticks ticks;
 
-#define TEST(name, fn, end)                  \
-void print_##name() {                       \
-    fn("Testing" end);                       \
-}
-
-TEST(test, fmt::print, "\n")
-TEST(debug, spdlog::debug, "")
 
 Display::Display()
 {
@@ -145,15 +140,69 @@ void quit(int status)
     exit(status);
 }
 
+VERSION(log, spdlog::debug, "")
+#ifdef __unix__
+VERSION(print, fmt::print, "\n")
+static void print_help()
+{
+    fmt::print("Usage: " EXECUTABLE_TITLE " [OPTIONS]\n");
+    fmt::print("  -c p, --config=p   Load config file from path p.\n");
+    fmt::print("  -l p, --layout=p   Load layout file from path p.\n");
+    fmt::print("  -d,   --debug      Enable debug messages.\n");
+    fmt::print("  -h,   --help       Show this help message.\n");
+    fmt::print("  -v,   --version    Print version information.\n");
+}
+#endif
+
+
 int main(int argc, char *argv[])
 {
-
     Layout layout;
     SDL_Event event;
+    std::string config_path;
+    std::string layout_path;
+    char c;
+    
+    // Parse command line
+    const char *short_opts = "c:l:dhv";
+    static struct option long_opts[] = {
+        { "config",       required_argument, NULL, 'c' },
+        { "layout",       required_argument, NULL, 'l' },
+        { "debug",        no_argument,       NULL, 'd' },
+        { "help",         no_argument,       NULL, 'h' },
+        { "version",      no_argument,       NULL, 'v' },
+        { 0, 0, 0, 0 }
+    };
+  
+    while ((c = getopt_long(argc, argv, short_opts, long_opts, NULL)) !=-1) {
+        switch (c) {
+            case 'c':
+                config_path = optarg;
+                break;  
+
+            case 'l':
+                layout_path = optarg;
+                break;
+
+            case 'd':
+                config.debug = true;
+                break;
+#ifdef __unix__
+            case 'h':
+                print_help();
+                quit(EXIT_SUCCESS);
+                break;
+
+            case 'v':
+                print_version();
+                quit(EXIT_SUCCESS);
+                break;
+#endif              
+        }
+    }
 
     // Initialize log
     auto file_sink = std::make_shared<spdlog::sinks::basic_lazy_file_sink_mt>(LOG_FILENAME, true);
-    file_sink->set_level(spdlog::level::debug);
     std::vector<spdlog::sink_ptr> sinks {file_sink};
 #ifdef __unix__
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -162,8 +211,12 @@ int main(int argc, char *argv[])
     sinks.push_back(console_sink);
 #endif
     auto logger = std::make_shared<spdlog::logger>(PROJECT_NAME, sinks.begin(), sinks.end());
+    logger->set_level((config.debug) ? spdlog::level::debug : spdlog::level::info);
     spdlog::set_default_logger(logger);
-    //spdlog::critical("test");
+    if (config.debug) {
+        log_version();
+        spdlog::debug("");
+    }
 
     layout.parse("layout.xml");
     config.parse("config.ini");
