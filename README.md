@@ -17,8 +17,8 @@ The following must be accomplished before an initial release can be made:
 - [x] Graphics rendering
 - [x] Animations
 - [x] Application card generation
-- [ ] Command line parsing
-- [ ] Automatic file searching
+- [x] Command line parsing
+- [x] Automatic file searching
 - [ ] Custom backgrounds
 - [ ] Application launching
 - [ ] Audio

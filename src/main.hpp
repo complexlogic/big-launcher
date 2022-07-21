@@ -12,7 +12,6 @@ class Display {
         void init();
         void create_window();
         void close();
-
 };
 
 typedef struct {

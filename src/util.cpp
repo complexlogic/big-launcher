@@ -1,3 +1,6 @@
+#include <filesystem>
+#include <span>
+#include <initializer_list>
 #include <string.h>
 #include <SDL.h>
 #include <fmt/core.h>
@@ -22,9 +25,10 @@ Config::Config()
     mouse_select = false;
 }
 
-void Config::parse(const char *file)
+void Config::parse(const std::string &file)
 {
-    if (ini_parse(file, handler, NULL) < 0) {
+    spdlog::debug("Parsing config file '{}'", file);
+    if (ini_parse(file.c_str(), handler, NULL) < 0) {
         spdlog::critical("Failed to parse config file");
         quit(EXIT_FAILURE);
     }
@@ -39,7 +43,6 @@ void Config::add_bool(const char *value, bool &out)
         out = false;
     }
 }
-
 
 static int handler(void* user, const char* section, const char* name, const char* value)
 {
@@ -189,4 +192,32 @@ bool hex_to_color(const char *string, SDL_Color &color)
     color.b = (Uint8) (hex & 0x000000ff);
     color.a = 0xFF;
     return true;
+}
+
+void join_paths(std::string &out, std::initializer_list<const char*> list)
+{
+    if (list.size() < 2)
+        return;
+
+    std::filesystem::path path;
+    auto it = list.begin();
+    path = *it;
+    it++;
+    for(it; it != list.end(); ++it) {
+        path /= *it;
+    }
+    out = path.string();
+}
+
+bool find_file(std::string &out, const char *filename, const std::initializer_list<const char*> &prefixes)
+{
+    //std::filesystem::path path;
+    for (const char *prefix : prefixes) {
+        join_paths(out, {prefix, filename});
+        //path = out;
+        if (std::filesystem::exists(out))
+            return true;
+    }
+    out.clear();
+    return false;
 }

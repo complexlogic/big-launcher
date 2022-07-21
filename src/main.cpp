@@ -1,5 +1,7 @@
 #include <memory>
+#include <filesystem>
 #include <getopt.h>
+#include <stdlib.h>
 #include <fmt/core.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -19,6 +21,7 @@
 Display display;
 Config config;
 Ticks ticks;
+char *executable_dir;
 
 
 Display::Display()
@@ -162,6 +165,7 @@ int main(int argc, char *argv[])
     std::string config_path;
     std::string layout_path;
     char c;
+    executable_dir = SDL_GetBasePath();
     
     // Parse command line
     const char *short_opts = "c:l:dhv";
@@ -201,8 +205,14 @@ int main(int argc, char *argv[])
         }
     }
 
-    // Initialize log
-    auto file_sink = std::make_shared<spdlog::sinks::basic_lazy_file_sink_mt>(LOG_FILENAME, true);
+    // Initialize logging
+    std::string log_path;
+#ifdef __unix__
+    char *home_dir = getenv("HOME");
+    join_paths(log_path, {home_dir, ".local", "share", EXECUTABLE_TITLE, LOG_FILENAME});
+#endif
+    auto file_sink = std::make_shared<spdlog::sinks::basic_lazy_file_sink_mt>(log_path, true);
+    file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
     std::vector<spdlog::sink_ptr> sinks {file_sink};
 #ifdef __unix__
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -217,19 +227,44 @@ int main(int argc, char *argv[])
         log_version();
         spdlog::debug("");
     }
+    
+    // Find layout and config files
+#ifdef __unix__
+    std::string home_config;
+    join_paths(home_config, {home_dir, ".config", EXECUTABLE_TITLE});
+    std::initializer_list<const char*> prefixes = {
+        CURRENT_DIRECTORY,
+        executable_dir,
+        home_config.c_str(),
+        SYSTEM_SHARE_DIR
+    };
+#endif
+    if (!layout_path.empty() && !std::filesystem::exists(layout_path)) {
+        spdlog::critical("Layout file '{}' does not exist", layout_path);
+        quit(EXIT_FAILURE);
+    }
+    else if (!find_file(layout_path, LAYOUT_FILENAME, prefixes)) {
+        spdlog::critical("Could not locate layout file");
+        quit(EXIT_FAILURE);
+    }
 
-    layout.parse("layout.xml");
-    config.parse("config.ini");
+    if (!config_path.empty() && !std::filesystem::exists(config_path)) {
+        spdlog::critical("Config file '{}' does not exist", config_path);
+        quit(EXIT_FAILURE);
+    }
+    else if (!find_file(config_path, CONFIG_FILENAME, prefixes)) {
+        spdlog::critical("Could not locate config file");
+        quit(EXIT_FAILURE);
+    }
 
+    layout.parse(layout_path);
+    config.parse(config_path);
 
     display.init();
     init_svg();
-    
     layout.load_surfaces(display.width, display.height);
-
     display.create_window();
     layout.load_textures(display.renderer);
-
 
     // Main program loop
     spdlog::debug("Begin main loop");

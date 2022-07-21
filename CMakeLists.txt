@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 project("launcher"
   LANGUAGES CXX
-  VERSION "0.1"
+  VERSION 0.1
 )
 set(CMAKE_CXX_STANDARD 20)
 set(EXECUTABLE_TITLE "launcher")

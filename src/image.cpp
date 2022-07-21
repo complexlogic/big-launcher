@@ -4,6 +4,8 @@
 #include <fmt/core.h>
 #include <spdlog/spdlog.h>
 
+#include <lconfig.h>
+#include "main.hpp"
 #include "image.hpp"
 #include "util.hpp"
 #define NANOSVG_IMPLEMENTATION
@@ -14,6 +16,7 @@
 SDL_Surface *rasterize_svg_image(NSVGimage *image, int w, int h);
 
 NSVGrasterizer *rasterizer = NULL;
+extern char *executable_dir;
 
 SDL_Surface *load_surface(std::string &file)
 {
@@ -26,7 +29,7 @@ SDL_Surface *load_surface(std::string &file)
         return out;
     }
 
-    // Convert the loaded surface if scaling is required or different pixel format
+    // Convert the loaded surface if different pixel format
     if (img->format->format != SDL_PIXELFORMAT_ARGB8888) {
         out = SDL_CreateRGBSurfaceWithFormat(0,
                   img->w,
@@ -148,9 +151,23 @@ Font::~Font()
 }
 
 
-int Font::load(const char *path, int height)
+int Font::load(const char *file, int height)
 {
-    font = TTF_OpenFont(path, height);
+    std::string font_path;
+    std::string font_dir_exe;
+    join_paths(font_dir_exe, {executable_dir, "assets", "fonts"});
+#ifdef __unix__
+    std::initializer_list<const char*> prefixes = {
+        font_dir_exe.c_str(),
+        SYSTEM_FONTS_DIR
+    };
+#endif
+    if (!find_file(font_path, file, prefixes)) {
+        spdlog::critical("Could not locate font '{}'", file);
+        quit(EXIT_FAILURE);
+    }
+
+    font = TTF_OpenFont(font_path.c_str(), height);
     if (!font) {
         spdlog::error("Could not open font\nSDL Error: {}\n", TTF_GetError());
         return 1;
@@ -166,7 +183,6 @@ SDL_Surface *Font::render_text(const char *text, SDL_Rect *src_rect, SDL_Rect *d
     char *out_text = (char*) text;
     TTF_SizeUTF8(font, text, &width, NULL);
     if (width > max_width) {
-        fmt::print("Width {} excceds max {}\n", width, max_width);
         copy_string_alloc(&truncated_text, text);
         utf8_truncate(truncated_text, width, max_width);
         out_text = truncated_text;

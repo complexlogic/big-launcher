@@ -216,7 +216,7 @@ class Layout {
 
     public:
         Layout();
-        void parse(const char *file);
+        void parse(const std::string &file);
         void add_entry();
         void load_surfaces(int screen_width, int screen_height);
         void load_textures(SDL_Renderer *renderer);

@@ -2,4 +2,14 @@
 #define PROJECT_VERSION "@PROJECT_VERSION@"
 #define EXECUTABLE_TITLE "@EXECUTABLE_TITLE@"
 
+#define CURRENT_DIRECTORY "."
+#ifdef __unix__
+#define SYSTEM_SHARE_DIR "@CMAKE_INSTALL_PREFIX@" "/" "share/" EXECUTABLE_TITLE
+#define SYSTEM_FONTS_DIR SYSTEM_SHARE_DIR "/assets/fonts"
+#endif
+
+#define SIDEBAR_FONT "NotoSans-Medium.ttf"
+
 #define LOG_FILENAME EXECUTABLE_TITLE ".log"
+#define LAYOUT_FILENAME "layout.xml"
+#define CONFIG_FILENAME "config.ini"

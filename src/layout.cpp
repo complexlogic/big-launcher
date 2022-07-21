@@ -10,6 +10,7 @@
 #include <SDL_image.h>
 #define NANOSVG_IMPLEMENTATION
 #include "external/nanosvg.h"
+#include <lconfig.h>
 #include "layout.hpp"
 #include "image.hpp"
 #include "main.hpp"
@@ -73,7 +74,6 @@ Entry *parse_entry(xmlChar *entry_title, xmlNodePtr node)
 
         // Get icon and background elements
         for (xmlNodePtr node = card_node->xmlChildrenNode; node != NULL; node = node->next) {
-
             if (!xmlStrcmp(node->name, (const xmlChar*) "icon")) {
                 icon_node = node;
             }
@@ -318,11 +318,11 @@ void Menu::render_card_textures(SDL_Renderer *renderer)
         texture = SDL_CreateTextureFromSurface(renderer, entry->surface);
         if (entry->card_type == GENERATED || entry->surface->w != entry->rect.w || entry->surface->h != entry->rect.h) {
             entry->texture = SDL_CreateTexture(renderer,
-                                    SDL_PIXELFORMAT_ARGB8888,
-                                    SDL_TEXTUREACCESS_TARGET,
-                                    entry->rect.w,
-                                    entry->rect.h
-                                );
+                                 SDL_PIXELFORMAT_ARGB8888,
+                                 SDL_TEXTUREACCESS_TARGET,
+                                 entry->rect.w,
+                                 entry->rect.h
+                             );
             SDL_SetRenderTarget(renderer, entry->texture);
             SDL_RenderCopy(renderer, texture, NULL, NULL);
             SDL_DestroyTexture(texture);            
@@ -331,6 +331,8 @@ void Menu::render_card_textures(SDL_Renderer *renderer)
             if (entry->card_type == GENERATED) {
                 texture = SDL_CreateTextureFromSurface(renderer, entry->icon_surface);
                 SDL_RenderCopy(renderer, texture, NULL, &entry->icon_rect);
+                free_surface(entry->icon_surface);
+                entry->icon_surface = NULL;
                 SDL_DestroyTexture(texture);
             }
         }
@@ -431,16 +433,16 @@ Layout::Layout()
     selection_mode = SELECTION_SIDEBAR;
 }
 
-void Layout::parse(const char *file)
+void Layout::parse(const std::string &file)
 {
+    spdlog::debug("Parsing layout file '{}'", file);
     xmlDocPtr doc;
     xmlNodePtr node;
     Menu *menu = NULL;
     Command *command = NULL;
-    doc = xmlParseFile(file);
+    doc = xmlParseFile(file.c_str());
     if (doc == NULL) {
         spdlog::critical("Failed to parse layout file");
-        xmlFreeDoc(doc);
         quit(EXIT_FAILURE);
     }
     node = xmlDocGetRootElement(doc);
@@ -518,7 +520,6 @@ void SidebarHighlight::render_surface(int w, int h, int rx)
 {
     this->w = w;
     this->h = h;
-    //SDL_Color color = {0x00, 0x00, 0xFF, 0xFF};
     std::string highlight = format_highlight(w, h, rx, config.sidebar_highlight_color);
     surface = rasterize_svg(highlight, -1, -1);
     rect.w = surface->w;
@@ -584,7 +585,7 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     sidebar_highlight.rect.y = y_min;
 
     // Find and load sidebar font
-    sidebar_font.load("assets/fonts/NotoSans-Medium.ttf", sidebar_font_size);
+    sidebar_font.load(SIDEBAR_FONT, sidebar_font_size);
 
     // Sidebar entry text geometry calculations and rendering
     int sidebar_text_margin = (int) std::round(f_sidebar_width * SIDEBAR_TEXT_MARGIN);
