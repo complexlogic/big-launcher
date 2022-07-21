@@ -39,10 +39,11 @@ void libxml2_error_handler(void *ctx, const char *msg, ...)
     va_end(args);
 
     int message_length = strlen(message);
+    size_t bytes = (error_length + message_length < sizeof(error)) ? message_length : sizeof(error) - error_length - 1;
     strncat(error, message, sizeof(error) - error_length - 1);
-    error_length += message_length;
+    error_length += bytes;
 
-    if (error[error_length - 1] == '\n') {
+    if (error[error_length - 1] == '\n' || error_length == (sizeof(error) - 1)) {
         error[error_length - 1] = '\0';
         spdlog::error("{}", error);
         error_length = 0;
@@ -471,7 +472,7 @@ void Layout::parse(const std::string &file)
     xmlNodePtr node;
     Menu *menu = NULL;
     Command *command = NULL;
-    
+
     xmlSetGenericErrorFunc(NULL, libxml2_error_handler);
     doc = xmlParseFile(file.c_str());
     if (doc == NULL) {

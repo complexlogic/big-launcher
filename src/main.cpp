@@ -22,6 +22,7 @@ Display display;
 Config config;
 Ticks ticks;
 char *executable_dir;
+std::string log_path;
 
 
 Display::Display()
@@ -138,6 +139,13 @@ static void cleanup()
 
 void quit(int status)
 {
+    if (status == EXIT_FAILURE) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 
+            PROJECT_NAME, 
+            fmt::format("A critical error occurred. Check the log file '{}' for details", log_path).c_str(), 
+            NULL
+        );
+    }
     spdlog::debug("Quitting program");
     cleanup();
     exit(status);
@@ -206,7 +214,6 @@ int main(int argc, char *argv[])
     }
 
     // Initialize logging
-    std::string log_path;
 #ifdef __unix__
     char *home_dir = getenv("HOME");
     join_paths(log_path, {home_dir, ".local", "share", EXECUTABLE_TITLE, LOG_FILENAME});
