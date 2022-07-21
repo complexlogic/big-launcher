@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include <SDL.h>
 #include <SDL_image.h>
 #define NANOSVG_IMPLEMENTATION
@@ -17,6 +18,36 @@
 #include "util.hpp"
 
 extern Config config;
+
+extern "C" {
+    void libxml2_error_handler(void *ctx, const char *msg, ...);
+}
+
+
+// Wrapper for libxml2 error messages
+void libxml2_error_handler(void *ctx, const char *msg, ...)
+{
+    static char error[512];
+    static int error_length = 0;
+    if (!error_length)
+        memset(error, '\0', sizeof(error));
+
+    char message[512];
+    va_list args;
+    va_start(args, msg);
+    vsnprintf(message, sizeof(message), msg, args);
+    va_end(args);
+
+    int message_length = strlen(message);
+    strncat(error, message, sizeof(error) - error_length - 1);
+    error_length += message_length;
+
+    if (error[error_length - 1] == '\n') {
+        error[error_length - 1] = '\0';
+        spdlog::error("{}", error);
+        error_length = 0;
+    }
+}
 
 Entry::Entry(const char *title, const char *command)
 {
@@ -440,6 +471,8 @@ void Layout::parse(const std::string &file)
     xmlNodePtr node;
     Menu *menu = NULL;
     Command *command = NULL;
+    
+    xmlSetGenericErrorFunc(NULL, libxml2_error_handler);
     doc = xmlParseFile(file.c_str());
     if (doc == NULL) {
         spdlog::critical("Failed to parse layout file");
