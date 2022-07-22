@@ -9,29 +9,29 @@
 
 #define COLUMNS 3
 #define TOP_MARGIN 0.2f
-//#define BOTTOM_MARGIN 0.85f
 #define BOTTOM_MARGIN 1.0f
+
 // Sidebar geometry
 #define SIDEBAR_HIGHLIGHT_LEFT 0.08f
-#define SIDEBAR_HIGHLIGHT_RIGHT 0.22f
+#define SIDEBAR_HIGHLIGHT_RIGHT 0.23f
 #define SIDEBAR_HIGHLIGHT_WIDTH SIDEBAR_HIGHLIGHT_RIGHT - SIDEBAR_HIGHLIGHT_LEFT
 #define SIDEBAR_HIGHLIGHT_HEIGHT 0.065f
-#define SIDEBAR_CORNER_RADIUS 0.012f
+#define SIDEBAR_CORNER_RADIUS 0.011f
 #define SIDEBAR_FONT_SIZE 0.55
 #define SIDEBAR_Y_ADVANCE 0.068f
 #define SIDEBAR_TEXT_MARGIN 0.07f
 
 // Menu card geometry
-#define CARD_LEFT_MARGIN 0.4F
+#define CARD_LEFT_MARGIN 0.42F
 #define CARD_RIGHT_MARGIN 0.92F
-#define CARD_SPACING 0.01F
+#define CARD_SPACING 0.011F
 #define CARD_WIDTH CARD_RIGHT_MARGIN - CARD_LEFT_MARGIN
 #define CARD_ASPECT_RATIO 1.33333333F
-#define CARD_ICON_MARGIN 0.10F
+#define CARD_ICON_MARGIN 0.12F
 
 // Menu highlight geometry
-#define HIGHLIGHT_THICKNESS 0.45f
-#define HIGHLIGHT_INNER_SPACING 0.33f
+#define HIGHLIGHT_THICKNESS 0.5f
+#define HIGHLIGHT_INNER_SPACING 0.25f
 #define MENU_HIGHLIGHT_RX 0.02f
 
 #define set_texture_color(texture, color) SDL_SetTextureColorMod(texture, color.r, color.g, color.b)
@@ -179,6 +179,9 @@ class Layout {
         int screen_height;
         float f_screen_width;
         float f_screen_height;
+
+        SDL_Surface *background_surface;
+        SDL_Texture *background_texture;
 
         // States
         std::vector<Shift> shift_queue;

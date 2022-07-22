@@ -10,6 +10,8 @@ public:
     SDL_Color sidebar_text_color;
     SDL_Color sidebar_text_color_highlighted;
 
+    std::string background_image_path;
+
     bool mouse_select;
     bool debug;
 
@@ -19,6 +21,7 @@ public:
     void add_int(const char *value, int &out);
     void add_string(const char *value, std::string &out);
     void add_bool(const char *value, bool &out);
+    void add_path(const char *value, std::string &out);
     //void add_color(const char *value, SDL_Color &color);
 
 

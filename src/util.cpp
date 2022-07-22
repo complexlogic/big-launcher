@@ -44,6 +44,17 @@ void Config::add_bool(const char *value, bool &out)
     }
 }
 
+void Config::add_path(const char *value, std::string &out)
+{
+    out = value;
+
+    // Remove double quotes
+    if (*out.begin() == '"' && *(out.end() - 1) == '"') {
+        out = out.substr(1, out.size() - 2);
+    }
+}
+
+
 static int handler(void* user, const char* section, const char* name, const char* value)
 {
     if (MATCH(section, "Settings")) {
@@ -58,6 +69,9 @@ static int handler(void* user, const char* section, const char* name, const char
         }
         else if (MATCH(name, "TextSelectedColor")) {
             hex_to_color(value, config.sidebar_text_color_highlighted);
+        }
+        else if (MATCH(name, "BackgroundImage")) {
+            config.add_path(value, config.background_image_path);
         }
     }
     return 0;

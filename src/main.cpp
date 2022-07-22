@@ -111,7 +111,7 @@ void Display::create_window()
 
     // Set renderer properties
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, 0x03, 0x01, 0x6e, 0);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 
     spdlog::debug("Successfully created window and renderer");
 }

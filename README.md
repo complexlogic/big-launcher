@@ -19,7 +19,7 @@ The following must be accomplished before an initial release can be made:
 - [x] Application card generation
 - [x] Command line parsing
 - [x] Automatic file searching
-- [ ] Custom backgrounds
+- [x] Custom backgrounds
 - [ ] Application launching
 - [ ] Audio
 - [ ] Gamepad controls

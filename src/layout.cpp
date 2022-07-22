@@ -375,7 +375,6 @@ void Menu::render_card_textures(SDL_Renderer *renderer)
         entry->surface = NULL;
 
     }
-    SDL_SetRenderTarget(renderer, NULL);
 }
 
 void Menu::draw_entries(SDL_Renderer *renderer, int y_min, int y_max)
@@ -463,6 +462,8 @@ Layout::Layout()
     sidebar_shift_count = 0;
     num_sidebar_entries = 0;
     selection_mode = SELECTION_SIDEBAR;
+    background_surface = NULL;
+    background_texture = NULL;
 }
 
 void Layout::parse(const std::string &file)
@@ -605,6 +606,14 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     y_min = (int) std::round(f_screen_height * TOP_MARGIN);
     y_max = (int) std::round(f_screen_height * BOTTOM_MARGIN);
 
+    // Background
+    if (!config.background_image_path.empty()) {
+        background_surface = (config.background_image_path.ends_with(".svg")) 
+                             ? rasterize_svg_from_file(config.background_image_path, screen_width/4, screen_height/4) 
+                             : load_surface(config.background_image_path);
+    }
+
+
     // Sidebar highlight geometry calculations and rendering
     float f_sidebar_width = std::round(f_screen_width * SIDEBAR_HIGHLIGHT_WIDTH);
     int sidebar_width = (int) f_sidebar_width;
@@ -684,6 +693,26 @@ void Layout::load_surfaces(int screen_width, int screen_height)
 void Layout::load_textures(SDL_Renderer *renderer)
 {
     this->renderer = renderer;
+
+    // Background texture
+    if (background_surface != NULL) {
+        SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, background_surface);
+        if (background_surface->w != screen_width || background_surface->h != screen_height) {
+            background_texture = SDL_CreateTexture(renderer,
+                                     SDL_PIXELFORMAT_ARGB8888,
+                                     SDL_TEXTUREACCESS_TARGET,
+                                     screen_width,
+                                     screen_height
+                                 );
+            SDL_SetRenderTarget(renderer, background_texture);
+            SDL_RenderCopy(renderer, texture, NULL, NULL);
+            SDL_DestroyTexture(texture);
+        }
+        else {
+            background_texture = texture;
+        }
+        free_surface(background_surface);
+    }
     sidebar_highlight.render_texture(renderer);
     Menu *menu;
     for (SidebarEntry *entry : list) {
@@ -697,6 +726,8 @@ void Layout::load_textures(SDL_Renderer *renderer)
     }
 
     menu_highlight.render_texture(renderer);
+    SDL_SetRenderTarget(renderer, NULL);
+    spdlog::debug("Sucessfully rendered textures");
 }
 
 
@@ -950,6 +981,11 @@ void Layout::draw()
     SDL_Rect dst_rect;
 
     SDL_RenderClear(renderer);
+
+    // Draw background
+    if (background_texture != NULL) {
+        SDL_RenderCopy(renderer, background_texture, NULL, NULL);
+    }
 
     // Draw sidebar highlight
     if (selection_mode == SELECTION_SIDEBAR) {
