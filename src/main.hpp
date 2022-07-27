@@ -1,9 +1,14 @@
 #include <SDL.h>
+
+#define DISPLAY_ASPECT_RATIO 1.77777778
+#define DISPLAY_ASPECT_RATIO_TOLERANCE 0.01f 
+
 class Display {
     public:
         SDL_Renderer *renderer;
         SDL_Window *window;
         SDL_DisplayMode dm;
+        SDL_RendererInfo ri;
         int width;
         int height;
         int refresh_period;
@@ -12,6 +17,7 @@ class Display {
         void init();
         void create_window();
         void close();
+        void print_debug_info();
 };
 
 typedef struct {

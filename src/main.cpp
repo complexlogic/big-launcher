@@ -1,4 +1,6 @@
 #include <memory>
+#include <string>
+#include <algorithm>
 #include <filesystem>
 #include <getopt.h>
 #include <stdlib.h>
@@ -60,6 +62,16 @@ void Display::init()
     width = dm.w;
     height = dm.h;
     refresh_period = 1000 / dm.refresh_rate;
+
+    // Force 16:9 aspect ratio
+    float aspect_ratio = (float) width / (float) height;
+    if (aspect_ratio > DISPLAY_ASPECT_RATIO + DISPLAY_ASPECT_RATIO_TOLERANCE) {
+        width = (int) std::round((float) height * DISPLAY_ASPECT_RATIO);
+    }
+    if (aspect_ratio < DISPLAY_ASPECT_RATIO - DISPLAY_ASPECT_RATIO_TOLERANCE) {
+        height = (int) std::round((float) width / DISPLAY_ASPECT_RATIO);
+    }
+
     /*
     if (config.gamepad_enabled) {
         delay_period = GAMEPAD_REPEAT_DELAY / refresh_period;
@@ -108,12 +120,33 @@ void Display::create_window()
         spdlog::critical("SDL Error: {}", SDL_GetError());
         quit(EXIT_FAILURE);
     }
+    SDL_GetRendererInfo(renderer, &ri);
+
+    // Make sure the renderer supports the required format
+    auto end = std::cbegin(ri.texture_formats) + ri.num_texture_formats;
+    auto it = std::find(std::cbegin(ri.texture_formats), end, SDL_PIXELFORMAT_ARGB8888);
+    if (it == end) {
+        spdlog::critical("GPU does not support the required pixel format");
+        SDL_DestroyWindow(window);
+        window = NULL;
+        quit(EXIT_FAILURE);
+    }
+
+    // Make sure we can render to texture
+    if (!ri.flags & SDL_RENDERER_TARGETTEXTURE) {
+        spdlog::critical("GPU does not support rendering to texture");
+        SDL_DestroyWindow(window);
+        window = NULL;
+        quit(EXIT_FAILURE);
+    }
 
     // Set renderer properties
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
     spdlog::debug("Successfully created window and renderer");
+    if (config.debug)
+        this->print_debug_info();
 }
 
 void Display::close()
@@ -131,6 +164,19 @@ void Display::close()
     TTF_Quit();
 }
 
+void Display::print_debug_info()
+{
+    spdlog::debug("Video Information:");
+    spdlog::debug("  Resolution:   {}x{}", dm.w, dm.h);
+    spdlog::debug("  Refresh Rate: {} Hz", dm.refresh_rate);
+    spdlog::debug("  Driver:       {}", SDL_GetCurrentVideoDriver());
+    spdlog::debug("  Supported texture formats:");
+    std::for_each(std::cbegin(ri.texture_formats), 
+        std::cbegin(ri.texture_formats) + ri.num_texture_formats, 
+        [](Uint32 f){spdlog::debug("    {}", SDL_GetPixelFormatName(f));}
+    );
+}
+
 static void cleanup()
 {
     display.close();
@@ -139,6 +185,7 @@ static void cleanup()
 
 void quit(int status)
 {
+    spdlog::debug("Quitting program");
     if (status == EXIT_FAILURE) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 
             PROJECT_NAME, 
@@ -146,7 +193,6 @@ void quit(int status)
             NULL
         );
     }
-    spdlog::debug("Quitting program");
     cleanup();
     exit(status);
 }
@@ -165,6 +211,22 @@ static void print_help()
 }
 #endif
 
+#ifdef DEBUG
+static inline void parse_render_resolution(const char *string, int &w, int &h)
+{
+    std::string s = string;
+    size_t x = s.find_first_of('x');
+    if (x == std::string::npos) {
+        spdlog::error("Invalid resolution argument '{}'", string);
+        return;
+    }
+    w = std::atoi(s.substr(0, x).c_str());
+    h = std::atoi(s.substr(x + 1, s.size() - x).c_str());
+    if (!w || !h) {
+        spdlog::error("Invalid resolution argument '{}'", string);
+    }
+}
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -176,7 +238,7 @@ int main(int argc, char *argv[])
     executable_dir = SDL_GetBasePath();
     
     // Parse command line
-    const char *short_opts = "c:l:dhv";
+    const char *short_opts = "+c:l:dhv";
     static struct option long_opts[] = {
         { "config",       required_argument, NULL, 'c' },
         { "layout",       required_argument, NULL, 'l' },
@@ -266,12 +328,41 @@ int main(int argc, char *argv[])
 
     layout.parse(layout_path);
     config.parse(config_path);
-
     display.init();
     init_svg();
+
+#ifdef DEBUG
+    int render_w = 0;
+    int render_h = 0;
+    int output_w, output_h;
+    if (argc > optind) {
+        parse_render_resolution(argv[optind], render_w, render_h);
+        if (render_w != 0 && render_h != 0) {
+            spdlog::debug("Rendering layout at {}x{}", render_w, render_h);
+            output_w = display.width;
+            output_h = display.height;
+            display.width = render_w;
+            display.height = render_h;
+        }
+    }
+#endif
+
     layout.load_surfaces(display.width, display.height);
     display.create_window();
     layout.load_textures(display.renderer);
+
+#ifdef DEBUG
+    if (render_w != 0 && render_h != 0) {
+        SDL_RenderSetScale(display.renderer, 
+            (float) output_w / (float) render_w, 
+            (float) output_h / (float) render_h
+        );
+    }
+#else
+    if (display.dm.w != display.width || display.dm.h != display.height) {
+        SDL_RenderSetLogicalSize(display.renderer, display.width, display.height);
+    }
+#endif
 
     // Main program loop
     spdlog::debug("Begin main loop");

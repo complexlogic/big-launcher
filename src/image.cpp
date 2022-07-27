@@ -1,4 +1,5 @@
 #include <math.h>
+#include <algorithm>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <fmt/core.h>
@@ -12,6 +13,7 @@
 #include "external/nanosvg.h"
 #define NANOSVGRAST_IMPLEMENTATION
 #include "external/nanosvgrast.h"
+#include "external/fast_gaussian_blur_template.h"
 
 SDL_Surface *rasterize_svg_image(NSVGimage *image, int w, int h);
 
@@ -228,4 +230,93 @@ SDL_Surface *Font::render_text(const char *text, SDL_Rect *src_rect, SDL_Rect *d
     }
     free(truncated_text);
     return surface;
+}
+
+
+SDL_Surface* create_shadow(SDL_Surface *in, const std::vector<BoxShadow> &box_shadows, int s_offset)
+{
+    float max_radius = 0.0f;
+    std::for_each(box_shadows.begin(), 
+        box_shadows.end(), 
+        [&](const BoxShadow &bs){if(bs.radius > max_radius) max_radius = bs.radius;}
+    );
+    int padding = 2 * (int) ceil(max_radius);
+
+    SDL_Color mod;
+    SDL_GetSurfaceColorMod(in, &mod.r, &mod.g, &mod.b);
+    SDL_GetSurfaceAlphaMod(in, &mod.a);
+    SDL_SetSurfaceColorMod(in, 0, 0, 0);
+
+    // Set up shadow
+    SDL_Surface *shadow = SDL_CreateRGBSurfaceWithFormat(0, 
+                              in->w + 2*s_offset, 
+                              in->h + 2*s_offset, 
+                              32,
+                              SDL_PIXELFORMAT_ARGB8888
+                          );
+    Uint32 color = SDL_MapRGBA(shadow->format, 0, 0, 0, 0);
+    SDL_FillRect(shadow, NULL, color);
+
+    // Set up alpha mask
+    SDL_Surface *alpha_mask = SDL_CreateRGBSurfaceWithFormat(0, 
+                                  in->w + 2*(padding + s_offset), 
+                                  in->h + 2*(padding + s_offset), 
+                                  32,
+                                  SDL_PIXELFORMAT_ARGB8888
+                              );
+    SDL_Rect alpha_mask_rect = {padding + s_offset, padding + s_offset, in->w, in->h};
+    
+    Uint8 *in_pixels;
+    Uint8 *out_pixels;
+    Uint8 *out_pixels0; // fast guassian blur swaps the address of the in/out pointers, need to rememeber it
+    SDL_Surface *tmp;
+    SDL_Rect src_rect;
+    SDL_Rect dst_rect;
+    int w, h;
+    for (const BoxShadow &bs : box_shadows) {
+
+        // Make alpha mask
+        SDL_FillRect(alpha_mask, NULL, color);
+        SDL_SetSurfaceAlphaMod(in, bs.alpha);
+        SDL_BlitSurface(in, NULL, alpha_mask, &alpha_mask_rect);
+
+        // Blur alpha mask
+        in_pixels = (Uint8*) alpha_mask->pixels;
+        out_pixels = (Uint8*) malloc(alpha_mask->w*alpha_mask->h*4);
+        out_pixels0 = out_pixels;
+        fast_gaussian_blur<Uint8>(in_pixels, out_pixels, alpha_mask->w, alpha_mask->h, 4, bs.radius);
+        tmp = SDL_CreateRGBSurfaceFrom(out_pixels,
+                  alpha_mask->w,
+                  alpha_mask->h,
+                  32,
+                  alpha_mask->w*4,
+                  COLOR_MASKS
+              );
+
+        // Composit onto shadow surface
+        w = alpha_mask->w - 2*padding - abs(bs.x_offset);
+        h = alpha_mask->w - 2*padding - abs(bs.y_offset);
+        src_rect = {
+            (bs.x_offset >= 0) ? padding : padding + bs.x_offset, 
+            (bs.y_offset >= 0) ? padding : padding + bs.y_offset, 
+            w,
+            h
+        };
+        dst_rect = {
+            (bs.x_offset > 0) ? bs.x_offset : 0,
+            (bs.y_offset > 0) ? bs.y_offset : 0,
+            w,
+            h
+        };
+        SDL_BlitSurface(tmp, &src_rect, shadow, &dst_rect);
+        free(out_pixels0);
+        SDL_FreeSurface(tmp);
+    }
+
+    free_surface(alpha_mask);
+
+    SDL_SetSurfaceColorMod(in, mod.r, mod.g, mod.b);
+    SDL_SetSurfaceAlphaMod(in, mod.a);
+
+    return shadow;
 }

@@ -30,6 +30,15 @@ class Font {
         SDL_Color color;
 };
 
+typedef struct {
+    int x_offset;
+    int y_offset;
+    float radius;
+    Uint8 alpha;
+} BoxShadow;
+
+
+
 #define free_surface(s)               \
 if (s != NULL) {                      \
     if(s->flags & SDL_PREALLOC) {     \
@@ -45,5 +54,9 @@ void quit_svg(void);
 SDL_Surface *rasterize_svg_from_file(const std::string &file, int w, int h);
 SDL_Surface *rasterize_svg(const std::string &buffer, int w, int h);
 SDL_Surface *rasterize_svg_image(NSVGimage *image, int w, int h);
+
+
+SDL_Surface* create_shadow(SDL_Surface *in, const std::vector<BoxShadow> &box_shadows, int s_offset);
+
 
 #endif

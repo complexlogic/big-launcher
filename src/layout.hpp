@@ -13,9 +13,9 @@
 
 // Sidebar geometry
 #define SIDEBAR_HIGHLIGHT_LEFT 0.08f
-#define SIDEBAR_HIGHLIGHT_RIGHT 0.23f
+#define SIDEBAR_HIGHLIGHT_RIGHT 0.21f
 #define SIDEBAR_HIGHLIGHT_WIDTH SIDEBAR_HIGHLIGHT_RIGHT - SIDEBAR_HIGHLIGHT_LEFT
-#define SIDEBAR_HIGHLIGHT_HEIGHT 0.065f
+#define SIDEBAR_HIGHLIGHT_HEIGHT 0.06f
 #define SIDEBAR_CORNER_RADIUS 0.011f
 #define SIDEBAR_FONT_SIZE 0.55
 #define SIDEBAR_Y_ADVANCE 0.068f
@@ -39,7 +39,7 @@
 #define HIGHLIGHT_FORMAT "<svg viewBox=\"0 0 {} {}\"><rect x=\"0\" width=\"{}\" height=\"{}\" rx=\"{}\" fill=\"#{:02x}{:02x}{:02x}\"/></svg>"
 #define format_highlight(w, h, rx, color) fmt::format(HIGHLIGHT_FORMAT, w, h, w, h, rx, color.r, color.g, color.b)
 
-#define MENU_HIGHLIGHT_FORMAT "<svg viewBox=\"0 0 {} {}\"><rect width=\"100%\" height=\"100%\" rx=\"{}\" fill=\"#ffffff\" /><rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"{}\"  fill=\"#0000ff\"/></svg>"
+#define MENU_HIGHLIGHT_FORMAT "<svg viewBox=\"0 0 {} {}\"><rect width=\"100%\" height=\"100%\" rx=\"{}\" fill=\"#ffffff\" /><rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"{}\"  fill=\"#000001\"/></svg>"
 #define format_menu_highlight(w, h, w_inner, h_inner, t, rx_outter, rx_inner) fmt::format(MENU_HIGHLIGHT_FORMAT, w, h, rx_outter, t, t, w_inner, h_inner, rx_inner)
 
 typedef enum  {
@@ -124,8 +124,8 @@ class Menu : public SidebarEntry{
         //~Menu();
         void add_entry(Entry *entry);
         size_t num_entries();
-        void render_surfaces(int w, int h, int x_start, int y_start, int spacing, int screen_height);
-        void render_card_textures(SDL_Renderer *renderer);
+        void render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, int h, int x_start, int y_start, int spacing, int screen_height);
+        void render_card_textures(SDL_Renderer *renderer, SDL_Texture *card_shadow_texture, int shadow_offset, int card_w, int card_h);
         void draw_entries(SDL_Renderer *renderer, int y_min, int y_max);
         void print_entries();
 };
@@ -154,6 +154,7 @@ class SidebarHighlight {
         SDL_Rect rect;
         int w;
         int h;
+        int shadow_offset;
 
         void render_surface(int w, int h, int rx);
         void render_texture(SDL_Renderer *renderer);
@@ -167,7 +168,7 @@ class MenuHighlight {
         SDL_Rect rect;
 
         MenuHighlight();
-        void render_surface(int x, int y, int w, int h, int t);
+        void render_surface(int x, int y, int w, int h, int t, int shadow_offset);
         void render_texture(SDL_Renderer *renderer);
 
 };
@@ -209,6 +210,10 @@ class Layout {
         int card_y0;
         int card_y_advance;
         int max_rows;
+        SDL_Surface *card_shadow;
+        SDL_Texture *card_shadow_texture;
+        SDL_Rect cr;
+        int card_shadow_offset;
 
         // Highlight
         MenuHighlight menu_highlight;

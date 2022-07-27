@@ -57,6 +57,7 @@ Entry::Entry(const char *title, const char *command)
     surface = NULL;
     texture = NULL;
     icon_surface = NULL;
+    background_color = {0xFF, 0xFF, 0xFF, 0xFF};
 }
 
 Entry::~Entry()
@@ -225,15 +226,19 @@ size_t Menu::num_entries()
 }
 
 
-void Menu::render_surfaces(int w, int h, int x_start, int y_start, int spacing, int screen_height)
+void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, int h, int x_start, int y_start, int spacing, int screen_height)
 {
     int column = 0;
     int x = x_start;
     int y = y_start;
     int x_advance = w + spacing;
     int y_advance = h + spacing;
+    SDL_Surface *bg;
+    SDL_Surface *icon;
 
     for (Entry *entry : entry_list) {
+        bg = NULL;
+
         if (entry->card_type == CUSTOM) {
             entry->surface = (entry->path.ends_with(".svg")) 
                                  ? rasterize_svg_from_file(entry->path, w, h)
@@ -242,7 +247,7 @@ void Menu::render_surfaces(int w, int h, int x_start, int y_start, int spacing, 
 
         // Generated card
         else {
-            SDL_Surface *bg = NULL;
+            icon = NULL;
             if (!entry->path.empty()) {
                 bg = (entry->path.ends_with(".svg")) 
                         ? rasterize_svg_from_file(entry->path, w, h)
@@ -252,8 +257,8 @@ void Menu::render_surfaces(int w, int h, int x_start, int y_start, int spacing, 
             // Color background
             if (bg == NULL) {
                 bg = SDL_CreateRGBSurfaceWithFormat(0, 
-                          w, 
-                          h, 
+                          w + shadow_offset, 
+                          h + shadow_offset, 
                           32,
                           SDL_PIXELFORMAT_ARGB8888
                       );
@@ -265,7 +270,6 @@ void Menu::render_surfaces(int w, int h, int x_start, int y_start, int spacing, 
                                );
                 SDL_FillRect(bg, NULL, color);
             }
-            SDL_Surface *icon = NULL;
 
             // Calculate aspect ratio, load surface if non-SVG
             float f_w, f_h, aspect_ratio;
@@ -287,7 +291,6 @@ void Menu::render_surfaces(int w, int h, int x_start, int y_start, int spacing, 
             }
 
             if (image != NULL || icon != NULL) {
-                //SDL_Rect rect;
                 float target_w, target_h;
 
                 // Calculate icon dimensions
@@ -295,8 +298,8 @@ void Menu::render_surfaces(int w, int h, int x_start, int y_start, int spacing, 
                     target_w = (float) w  * (1.0f - 2.0f * CARD_ICON_MARGIN);
                     target_h = ((target_w / f_w)) * f_h;
                     entry->icon_rect =  {
-                        (int) std::round(CARD_ICON_MARGIN * (float) w),
-                        (h - (int) target_h) / 2,
+                        (int) std::round(CARD_ICON_MARGIN * (float) w) + shadow_offset,
+                        (h - (int) target_h) / 2 + shadow_offset,
                         (int) std::round(target_w),
                         (int) std::round(target_h)
                     };
@@ -305,8 +308,8 @@ void Menu::render_surfaces(int w, int h, int x_start, int y_start, int spacing, 
                     target_h = (float) h  * (1.0f - 2.0f * CARD_ICON_MARGIN);
                     target_w = (target_h / f_h) * f_w;
                     entry->icon_rect = {
-                        (w - (int) target_w) / 2,
-                        (int) std::round(CARD_ICON_MARGIN * (float) h),
+                        (w - (int) target_w) / 2 + shadow_offset,
+                        (int) std::round(CARD_ICON_MARGIN * (float) h) + shadow_offset,
                         (int) std::round(target_w),
                         (int) std::round(target_h)
                     };
@@ -320,15 +323,14 @@ void Menu::render_surfaces(int w, int h, int x_start, int y_start, int spacing, 
                 entry->icon_surface = icon;
             }
             entry->surface = bg;
-
         }
 
         // Assign dimensions
         entry->rect = {
             x,
             y,
-            w,
-            h
+            w + 2*shadow_offset,
+            h + 2*shadow_offset
         };
         x += x_advance;
         column++;
@@ -342,38 +344,39 @@ void Menu::render_surfaces(int w, int h, int x_start, int y_start, int spacing, 
     height = (y > screen_height) ? y : screen_height;
 }
 
-void Menu::render_card_textures(SDL_Renderer *renderer)
+void Menu::render_card_textures(SDL_Renderer *renderer, SDL_Texture *card_shadow_texture, int shadow_offset, int card_w, int card_h)
 {
     SDL_Texture *texture = NULL;
+    SDL_Rect rect = {shadow_offset, shadow_offset, card_w, card_h};
     
     for (Entry *entry : entry_list) {
-        texture = SDL_CreateTextureFromSurface(renderer, entry->surface);
-        if (entry->card_type == GENERATED || entry->surface->w != entry->rect.w || entry->surface->h != entry->rect.h) {
-            entry->texture = SDL_CreateTexture(renderer,
-                                 SDL_PIXELFORMAT_ARGB8888,
-                                 SDL_TEXTUREACCESS_TARGET,
-                                 entry->rect.w,
-                                 entry->rect.h
-                             );
-            SDL_SetRenderTarget(renderer, entry->texture);
-            SDL_RenderCopy(renderer, texture, NULL, NULL);
-            SDL_DestroyTexture(texture);            
+        entry->texture = SDL_CreateTexture(renderer,
+                             SDL_PIXELFORMAT_ARGB8888,
+                             SDL_TEXTUREACCESS_TARGET,
+                             entry->rect.w,
+                             entry->rect.h
+                         );
+        SDL_SetTextureBlendMode(entry->texture, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderTarget(renderer, entry->texture);
+        
+        // Copy the shadow
+        SDL_RenderCopy(renderer, card_shadow_texture, NULL, NULL);
 
-            // Copy the icon onto the texture
-            if (entry->card_type == GENERATED) {
-                texture = SDL_CreateTextureFromSurface(renderer, entry->icon_surface);
-                SDL_RenderCopy(renderer, texture, NULL, &entry->icon_rect);
-                free_surface(entry->icon_surface);
-                entry->icon_surface = NULL;
-                SDL_DestroyTexture(texture);
-            }
-        }
-        else {
-            entry->texture = texture;
-        }
+        // Copy the background
+        texture = SDL_CreateTextureFromSurface(renderer, entry->surface);
+        SDL_RenderCopy(renderer, texture, NULL, &rect);
         free_surface(entry->surface);
         entry->surface = NULL;
-
+        SDL_DestroyTexture(texture);
+        
+        // Copy the icon
+        if (entry->card_type == GENERATED) {
+            texture = SDL_CreateTextureFromSurface(renderer, entry->icon_surface);
+            SDL_RenderCopy(renderer, texture, NULL, &entry->icon_rect);
+            free_surface(entry->icon_surface);
+            entry->icon_surface = NULL;
+            SDL_DestroyTexture(texture);           
+        }
     }
 }
 
@@ -464,6 +467,7 @@ Layout::Layout()
     selection_mode = SELECTION_SIDEBAR;
     background_surface = NULL;
     background_texture = NULL;
+    card_shadow = NULL;
 }
 
 void Layout::parse(const std::string &file)
@@ -551,12 +555,38 @@ void Layout::parse(const std::string &file)
     spdlog::debug("Successfully parsed layout file");
 }
 
+#define SHADOW_ALPHA 0.45f
+#define SHADOW_BLUR_SLOPE 0.0101212f
+#define SHADOW_BLUR_INTERCEPT 8.93f
+#define SHADOW_OFFSET_SLOPE 0.008f
+#define SHADOW_OFFSET_INTERCEPT 3.15f
+
+
 void SidebarHighlight::render_surface(int w, int h, int rx)
 {
     this->w = w;
     this->h = h;
-    std::string highlight = format_highlight(w, h, rx, config.sidebar_highlight_color);
-    surface = rasterize_svg(highlight, -1, -1);
+
+    std::string highlight_buffer = format_highlight(w, h, rx, config.sidebar_highlight_color);
+    SDL_Surface *highlight = rasterize_svg(highlight_buffer, -1, -1);
+
+    constexpr Uint8 alpha = (Uint8) std::round((float) 0xFF * SHADOW_ALPHA);
+    float f_height = (float) highlight->h;
+
+    float max_blur = SHADOW_BLUR_SLOPE*f_height + SHADOW_BLUR_INTERCEPT;
+    int max_y_offset = SHADOW_OFFSET_SLOPE*f_height + SHADOW_OFFSET_INTERCEPT;
+    std::vector<BoxShadow> box_shadows = {
+        {0, max_y_offset / 2, max_blur / 2.0f, alpha},
+        {0, max_y_offset,     max_blur,        alpha}
+    };
+
+
+    shadow_offset = (int) std::round(max_blur * 2.0f);
+    surface = create_shadow(highlight, box_shadows, shadow_offset);
+    SDL_Rect tmp = {shadow_offset, shadow_offset, highlight->w, highlight->h};
+    SDL_BlitSurface(highlight, NULL, surface, &tmp);
+    free_surface(highlight);
+
     rect.w = surface->w;
     rect.h = surface->h;
 }
@@ -566,6 +596,7 @@ void SidebarHighlight::render_texture(SDL_Renderer *renderer)
 {
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     free_surface(surface);
+    surface = NULL;
 }
 
 
@@ -576,15 +607,35 @@ MenuHighlight::MenuHighlight()
 }
 
 
-void MenuHighlight::render_surface(int x, int y, int w, int h, int t)
+void MenuHighlight::render_surface(int x, int y, int w, int h, int t, int shadow_offset)
 {
     int w_inner = w - 2*t;
     int h_inner = h - 2*t;
     int rx_outter = (int) std::round((float) w * MENU_HIGHLIGHT_RX);
     int rx_inner = rx_outter / 2;
+    
+
+    // Render highlight
     std::string format = format_menu_highlight(w, h, w_inner, h_inner, t, rx_outter, rx_inner);
-    surface = rasterize_svg(format, -1, -1);
-    Uint32 key = SDL_MapRGBA(surface->format, 0x00, 0x00, 0xFF, 0xFF);
+    SDL_Surface *highlight = rasterize_svg(format, -1, -1);
+
+    // Render shadow
+    #define SHADOW_ALPHA_HIGHLIGHT 0.6f
+    constexpr Uint8 alpha = (Uint8) std::round((float) 0xFF * SHADOW_ALPHA_HIGHLIGHT);
+    float f_h = (float) h;
+    float max_blur = SHADOW_BLUR_SLOPE*f_h+ SHADOW_BLUR_INTERCEPT;
+    int max_y_offset = SHADOW_OFFSET_SLOPE*f_h + SHADOW_OFFSET_INTERCEPT;
+    std::vector<BoxShadow> box_shadows = {
+        {0, max_y_offset / 2, max_blur / 2.0f, alpha},
+        {0, max_y_offset,     max_blur,        alpha}
+    };
+
+
+    surface = create_shadow(highlight, box_shadows, shadow_offset);
+    SDL_Rect blit_rect = {shadow_offset, shadow_offset, highlight->w, highlight->h};
+    SDL_BlitSurface(highlight, NULL, surface, &blit_rect);
+    free_surface(highlight);
+    Uint32 key = SDL_MapRGBA(surface->format, 0x00, 0x00, 0x01, 0xFF);
     SDL_SetColorKey(surface, SDL_TRUE, key);
     rect = {x, y, surface->w, surface->h};
 }
@@ -624,17 +675,17 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     sidebar_y_advance = (int) std::round(f_screen_height * SIDEBAR_Y_ADVANCE);
     
     sidebar_highlight.render_surface(sidebar_width, sidebar_height, sidebar_cx);
-    sidebar_highlight.rect.x = (int) std::round(f_screen_width * SIDEBAR_HIGHLIGHT_LEFT);
-    sidebar_highlight.rect.y = y_min;
+    sidebar_highlight.rect.x = (int) std::round(f_screen_width * SIDEBAR_HIGHLIGHT_LEFT) - sidebar_highlight.shadow_offset;
+    sidebar_highlight.rect.y = y_min - sidebar_highlight.shadow_offset;
 
     // Find and load sidebar font
     sidebar_font.load(SIDEBAR_FONT, sidebar_font_size);
 
     // Sidebar entry text geometry calculations and rendering
     int sidebar_text_margin = (int) std::round(f_sidebar_width * SIDEBAR_TEXT_MARGIN);
-    int sidebar_text_x = sidebar_highlight.rect.x + sidebar_text_margin;
+    int sidebar_text_x = sidebar_highlight.rect.x + sidebar_highlight.shadow_offset + sidebar_text_margin;
     int max_sidebar_text_width = sidebar_width - 2 * sidebar_text_margin;
-    int y = sidebar_highlight.rect.y + sidebar_highlight.h / 2;
+    int y = sidebar_highlight.rect.y + sidebar_highlight.h / 2 + sidebar_highlight.shadow_offset;
     for (int i = 0; SidebarEntry *entry : list) {
         entry->surface = sidebar_font.render_text(entry->title.c_str(), 
                              &entry->src_rect, 
@@ -651,19 +702,51 @@ void Layout::load_surfaces(int screen_width, int screen_height)
         i++;
     }
 
-    // Menu card geometry calculations and rendering
+    // Menu card geometry calculations
     card_x0 = (int) std::round(f_screen_width * CARD_LEFT_MARGIN);
     card_y0 = y_min;
     int card_spacing = std::round(f_screen_width * CARD_SPACING);
     card_w = (((int) std::round(f_screen_width * (CARD_WIDTH))) - (COLUMNS - 1)*card_spacing) / COLUMNS;
     card_h = (int) std::round((float) card_w / CARD_ASPECT_RATIO);
+    float f_card_h = (float) card_h;
+
+    // Render card shadow
+    constexpr Uint8 alpha = (Uint8) std::round((float) 0xFF * SHADOW_ALPHA);
+    float max_blur = SHADOW_BLUR_SLOPE*f_card_h + SHADOW_BLUR_INTERCEPT;
+    int max_y_offset = SHADOW_OFFSET_SLOPE*f_card_h + SHADOW_OFFSET_INTERCEPT;
+    std::vector<BoxShadow> box_shadows = {
+        {0, max_y_offset / 2, max_blur / 2.0f, alpha},
+        {0, max_y_offset,     max_blur,        alpha}
+    };
+    card_shadow_offset = (int) std::round(max_blur * 2.0f);
+
+    SDL_Surface *shadow_box = SDL_CreateRGBSurfaceWithFormat(0, 
+                                  card_w, 
+                                  card_h, 
+                                  32,
+                                  SDL_PIXELFORMAT_ARGB8888
+                              );
+    Uint32 white = SDL_MapRGBA(shadow_box->format, 0xFF, 0xFF, 0xFF, 0xFF);
+    SDL_FillRect(shadow_box, NULL, white);
+    card_shadow = create_shadow(shadow_box, box_shadows, card_shadow_offset);
+    free_surface(shadow_box);
+
+    // Menu card rendering
     card_y_advance = card_h + card_spacing;
     max_rows = (y_max - y_min) / card_y_advance;
     Menu *menu = NULL;
     for (const SidebarEntry *entry : list) {
         if (entry->type == MENU) {
             menu = (Menu*) entry;
-            menu->render_surfaces(card_w, card_h, card_x0, card_y0, card_spacing, screen_height);
+            menu->render_surfaces(card_shadow, 
+                card_shadow_offset, 
+                card_w, 
+                card_h, 
+                card_x0 - card_shadow_offset, 
+                card_y0 - card_shadow_offset, 
+                card_spacing, 
+                screen_height
+            );
         }
     }
 
@@ -671,8 +754,9 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     float f_card_spacing = (float) card_spacing;
     int t = (int) std::round(f_card_spacing * HIGHLIGHT_THICKNESS);
     int inner_spacing = (int) std::round(f_card_spacing * HIGHLIGHT_INNER_SPACING);
-    highlight_x0 = card_x0 - (inner_spacing + t);
-    highlight_y0 = card_y0 - (inner_spacing + t);
+    int mh_shadow_offset = (int) std::round(max_blur * 2.0f);
+    highlight_x0 = card_x0 - (inner_spacing + t) - mh_shadow_offset;
+    highlight_y0 = card_y0 - (inner_spacing + t) - mh_shadow_offset;
     int padding = 2*(inner_spacing + t);
     int highlight_w = card_w + padding;
     int highlight_h = card_h + padding; 
@@ -681,7 +765,8 @@ void Layout::load_surfaces(int screen_width, int screen_height)
         highlight_y0, 
         highlight_w, 
         highlight_h, 
-        t
+        t,
+        mh_shadow_offset
     );
     highlight_x_advance = card_w + card_spacing;
     highlight_y_advance = card_h + card_spacing;
@@ -714,6 +799,12 @@ void Layout::load_textures(SDL_Renderer *renderer)
         free_surface(background_surface);
     }
     sidebar_highlight.render_texture(renderer);
+
+    card_shadow_texture = SDL_CreateTextureFromSurface(renderer, card_shadow);
+    free_surface(card_shadow);
+    card_shadow = NULL;
+    SDL_SetTextureBlendMode(card_shadow_texture, SDL_BLENDMODE_NONE);
+
     Menu *menu;
     for (SidebarEntry *entry : list) {
         entry->texture = SDL_CreateTextureFromSurface(renderer, entry->surface);
@@ -721,9 +812,11 @@ void Layout::load_textures(SDL_Renderer *renderer)
         free_surface(entry->surface);
         if (entry->type == MENU) {
             menu = (Menu*) entry;
-            menu->render_card_textures(renderer);
+            menu->render_card_textures(renderer, card_shadow_texture, card_shadow_offset, card_w, card_h);
         }
     }
+    SDL_DestroyTexture(card_shadow_texture);
+    card_shadow_texture = NULL;
 
     menu_highlight.render_texture(renderer);
     SDL_SetRenderTarget(renderer, NULL);
@@ -987,23 +1080,25 @@ void Layout::draw()
         SDL_RenderCopy(renderer, background_texture, NULL, NULL);
     }
 
+
     // Draw sidebar highlight
     if (selection_mode == SELECTION_SIDEBAR) {
         y = sidebar_highlight.rect.y;
         h = sidebar_highlight.rect.h;
+        int sidebar_y_min = y_min - sidebar_highlight.shadow_offset;
 
         // Intersecting top bound
-        if (y < y_min) {
-            if (y + h > y_min) {
+        if (y < sidebar_y_min) {
+            if (y + h > sidebar_y_min) {
                 src_rect = {
                     0, // x
-                    y_min - y, // y
+                    sidebar_y_min - y, // y
                     sidebar_highlight.rect.w, // w
-                    sidebar_highlight.rect.h - (y_min - y) // h
+                    sidebar_highlight.rect.h - (sidebar_y_min - y) // h
                 };
                 dst_rect = {
                     sidebar_highlight.rect.x, // x
-                    y_min, // y
+                    sidebar_y_min, // y
                     src_rect.w, // w
                     src_rect.h // h
                 };
@@ -1068,7 +1163,7 @@ void Layout::draw()
 
     // Draw menu entries
     for (Menu *menu : visible_menus) {
-        menu->draw_entries(renderer, y_min, y_max);
+        menu->draw_entries(renderer, y_min - card_shadow_offset, y_max);
     }
 
     // Draw menu highlight

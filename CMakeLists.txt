@@ -5,6 +5,10 @@ project("launcher"
 )
 set(CMAKE_CXX_STANDARD 20)
 set(EXECUTABLE_TITLE "launcher")
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif ()
+add_compile_definitions("$<$<CONFIG:DEBUG>:DEBUG>")
 
 # Find dependencies
 if (UNIX)
