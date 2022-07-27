@@ -7,7 +7,7 @@ The project will be Linux-only while in development, but Windows will be support
 
 So far, all that is accomplished is a basic concept for the UI. It is not currently capable of launching applications and cannot be used in a working HTPC setup yet.
 
-![Screenshot](https://user-images.githubusercontent.com/95071366/180574039-ba2565ea-0bd7-4e43-863e-4dcc551fe081.png)
+![Screenshot](https://user-images.githubusercontent.com/95071366/181177048-306a31fb-f5e1-4816-896a-799b690df593.png)
 
 ## Roadmap
 The following must be accomplished before an initial release can be made:
