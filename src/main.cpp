@@ -18,10 +18,12 @@
 #include "main.hpp"
 #include "layout.hpp"
 #include "image.hpp"
+#include "sound.hpp"
 #include "util.hpp"
 
 Display display;
 Config config;
+Sound sound;
 Ticks ticks;
 char *executable_dir;
 std::string log_path;
@@ -133,7 +135,7 @@ void Display::create_window()
     }
 
     // Make sure we can render to texture
-    if (!ri.flags & SDL_RENDERER_TARGETTEXTURE) {
+    if (!(ri.flags & SDL_RENDERER_TARGETTEXTURE)) {
         spdlog::critical("GPU does not support rendering to texture");
         SDL_DestroyWindow(window);
         window = NULL;
@@ -308,20 +310,24 @@ int main(int argc, char *argv[])
         SYSTEM_SHARE_DIR
     };
 #endif
-    if (!layout_path.empty() && !std::filesystem::exists(layout_path)) {
-        spdlog::critical("Layout file '{}' does not exist", layout_path);
-        quit(EXIT_FAILURE);
+    if (!layout_path.empty()) {
+        if (!std::filesystem::exists(layout_path)) {
+            spdlog::critical("Layout file '{}' does not exist", layout_path);
+            quit(EXIT_FAILURE);
+        }
     }
     else if (!find_file(layout_path, LAYOUT_FILENAME, prefixes)) {
         spdlog::critical("Could not locate layout file");
         quit(EXIT_FAILURE);
     }
 
-    if (!config_path.empty() && !std::filesystem::exists(config_path)) {
-        spdlog::critical("Config file '{}' does not exist", config_path);
-        quit(EXIT_FAILURE);
+    if (!config_path.empty()) {
+        if (!std::filesystem::exists(config_path)) {
+            spdlog::critical("Config file '{}' does not exist", config_path);
+            quit(EXIT_FAILURE);
+        }
     }
-    else if (!find_file(config_path, CONFIG_FILENAME, prefixes)) {
+    if (!find_file(config_path, CONFIG_FILENAME, prefixes)) {
         spdlog::critical("Could not locate config file");
         quit(EXIT_FAILURE);
     }
@@ -330,6 +336,9 @@ int main(int argc, char *argv[])
     config.parse(config_path);
     display.init();
     init_svg();
+    if (config.sound_enabled && sound.init()) {
+        config.sound_enabled = false;
+    }
 
 #ifdef DEBUG
     int render_w = 0;
@@ -389,6 +398,9 @@ int main(int argc, char *argv[])
                     }
                     else if (event.key.keysym.sym == SDLK_RIGHT) {
                         layout.move_right();
+                    }
+                    else if (event.key.keysym.sym == SDLK_RETURN) {
+                        sound.play_select();
                     }
                     SDL_FlushEvent(SDL_KEYDOWN);
                     break;

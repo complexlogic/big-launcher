@@ -21,7 +21,7 @@ The following must be accomplished before an initial release can be made:
 - [x] Automatic file searching
 - [x] Custom backgrounds
 - [ ] Application launching
-- [ ] Audio
+- [x] Audio
 - [ ] Gamepad controls
 - [ ] Hotkeys
 - [ ] Screensaver
@@ -37,6 +37,7 @@ You need to have the following dependencies installed:
 - SDL2
 - SDL2_image
 - SDL2_ttf
+- SDL2_mixer
 - libxml2
 - inih
 - fmt

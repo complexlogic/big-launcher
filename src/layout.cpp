@@ -15,9 +15,11 @@
 #include "layout.hpp"
 #include "image.hpp"
 #include "main.hpp"
+#include "sound.hpp"
 #include "util.hpp"
 
 extern Config config;
+extern Sound sound;
 
 extern "C" {
     void libxml2_error_handler(void *ctx, const char *msg, ...);
@@ -854,6 +856,8 @@ void Layout::move_up()
             sidebar_highlight.rect.y -= sidebar_y_advance;
             current_entry--;
             sidebar_pos--;
+            if (sound.connected)
+                sound.play_click();
         }
     }
 
@@ -870,6 +874,8 @@ void Layout::move_up()
         }
         current_menu->current_entry -= 3;
         current_menu->row--;
+        if (sound.connected)
+            sound.play_click();
     }
 }
 
@@ -900,6 +906,8 @@ void Layout::move_down()
             sidebar_highlight.rect.y += sidebar_y_advance;
             current_entry++;
             sidebar_pos++;
+            if (sound.connected)
+                sound.play_click();
         }
 
         // Shift sidebar
@@ -924,6 +932,8 @@ void Layout::move_down()
 
             current_menu->current_entry += COLUMNS;
             current_menu->row++;
+            if (sound.connected)
+                sound.play_click();
         }
     }
 }
@@ -953,6 +963,8 @@ void Layout::move_left()
             current_menu->column--;
             current_menu->current_entry--;
         }
+        if (sound.connected)
+            sound.play_click();
     }
 }
 
@@ -962,6 +974,8 @@ void Layout::move_right()
     if (selection_mode == SELECTION_SIDEBAR && current_menu != NULL) {
         selection_mode = SELECTION_MENU;
         set_texture_color((*current_entry)->texture, config.sidebar_text_color);
+        if (sound.connected)
+            sound.play_click();
     }
 
     else if (selection_mode == SELECTION_MENU) {
@@ -975,6 +989,8 @@ void Layout::move_right()
 
             current_menu->column++;
             current_menu->current_entry++;
+            if (sound.connected)
+                sound.play_click();
         }
     }
 }

@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <SDL_mixer.h>
 
 #define DISPLAY_ASPECT_RATIO 1.77777778
 #define DISPLAY_ASPECT_RATIO_TOLERANCE 0.01f 
@@ -33,19 +34,21 @@ typedef struct {
 #endif
 
 
-#define VERSION(name, f, end)                                                                    \
-static void name##_version() {                                                                   \
-    SDL_version sdl_version;                                                                     \
-    SDL_GetVersion(&sdl_version);                                                                \
-    const SDL_version *img_version = IMG_Linked_Version();                                       \
-    const SDL_version *ttf_version = TTF_Linked_Version();                                       \
-    f(PROJECT_NAME " version " PROJECT_VERSION ", using:" end);                                  \
-    f("  SDL       {}.{}.{}" end, sdl_version.major, sdl_version.minor, sdl_version.patch);      \
-    f("  SDL_image {}.{}.{}" end, img_version->major, img_version->minor, img_version->patch);   \
-    f("  SDL_ttf   {}.{}.{}" end, ttf_version->major, ttf_version->minor, ttf_version->patch);   \
-    f(end);                                                                                      \
-    f("Build date: " __DATE__ end);                                                              \
-    COMPILER_INFO(f, end);                                                                       \
+#define VERSION(name, f, end)                                                                     \
+static void name##_version() {                                                                    \
+    SDL_version sdl_version;                                                                      \
+    SDL_GetVersion(&sdl_version);                                                                 \
+    const SDL_version *img_version = IMG_Linked_Version();                                        \
+    const SDL_version *ttf_version = TTF_Linked_Version();                                        \
+    const SDL_version *mix_version = Mix_Linked_Version();                                        \
+    f(PROJECT_NAME " version " PROJECT_VERSION ", using:" end);                                   \
+    f("  SDL        {}.{}.{}" end, sdl_version.major, sdl_version.minor, sdl_version.patch);      \
+    f("  SDL_image  {}.{}.{}" end, img_version->major, img_version->minor, img_version->patch);   \
+    f("  SDL_ttf    {}.{}.{}" end, ttf_version->major, ttf_version->minor, ttf_version->patch);   \
+    f("  SDL_mixer  {}.{}.{}" end, mix_version->major, mix_version->minor, mix_version->patch);   \
+    f(end);                                                                                       \
+    f("Build date: " __DATE__ end);                                                               \
+    COMPILER_INFO(f, end);                                                                        \
 }
 
 void quit(int status);

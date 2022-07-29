@@ -6,6 +6,7 @@
 #ifdef __unix__
 #define SYSTEM_SHARE_DIR "@CMAKE_INSTALL_PREFIX@" "/" "share/" EXECUTABLE_TITLE
 #define SYSTEM_FONTS_DIR SYSTEM_SHARE_DIR "/assets/fonts"
+#define SYSTEM_SOUNDS_DIR SYSTEM_SHARE_DIR "/assets/sounds"
 #endif
 
 #define SIDEBAR_FONT "NotoSans-Medium.ttf"
@@ -13,3 +14,5 @@
 #define LOG_FILENAME EXECUTABLE_TITLE ".log"
 #define LAYOUT_FILENAME "layout.xml"
 #define CONFIG_FILENAME "config.ini"
+#define CLICK_FILENAME "click.wav"
+#define SELECT_FILENAME "select.wav"

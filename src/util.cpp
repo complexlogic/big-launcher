@@ -23,6 +23,8 @@ Config::Config()
     sidebar_text_color = {0xFF, 0xFF, 0xFF, 0xFF};
     sidebar_text_color_highlighted = {0xFF, 0xFF, 0xFF, 0xFF};
     mouse_select = false;
+    sound_enabled = false;
+    sound_volume = 100;
 }
 
 void Config::parse(const std::string &file)
@@ -54,6 +56,23 @@ void Config::add_path(const char *value, std::string &out)
     }
 }
 
+template <typename T>
+void Config::add_percent(const char *value, T &out, T ref, float min, float max)
+{
+    std::string v = value;
+    if (*(v.end() -1) != '%')
+        return;
+    float percent = atof(v.substr(0, v.size() - 1).c_str()) / 100.0f;
+    if (percent == 0.0f && strcmp(value, "0%"))
+        return;
+    if (percent < min)
+        percent = min;
+    else if (percent > max)
+        percent = max;
+    
+    out = static_cast<T>(percent * static_cast<float>(ref));
+}
+
 
 static int handler(void* user, const char* section, const char* name, const char* value)
 {
@@ -73,6 +92,15 @@ static int handler(void* user, const char* section, const char* name, const char
         else if (MATCH(name, "BackgroundImage")) {
             config.add_path(value, config.background_image_path);
         }
+    }
+    else if (MATCH(section, "Sound")) {
+        if (MATCH(name, "Enabled")) {
+            config.add_bool(value, config.sound_enabled);
+        }
+        else if (MATCH(name, "Volume")) {
+            config.add_percent(value, config.sound_volume, 100);
+        }
+
     }
     return 0;
 }
