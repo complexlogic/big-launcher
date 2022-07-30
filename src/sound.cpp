@@ -81,7 +81,7 @@ int Sound::init()
 int Sound::connect()
 {
     spdlog::debug("Opening audio device...");
-    int ret = Mix_OpenAudioDevice(44100,
+    int ret = Mix_OpenAudioDevice(48000,
                   AUDIO_S16SYS,
                   2,
                   1024,
