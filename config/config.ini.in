@@ -15,7 +15,7 @@ QuitCmd=
 
 [Sound]
 Enabled=true
-Volume=100%
+Volume=10
 
 [Clock]
 Enabled=

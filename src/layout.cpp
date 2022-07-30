@@ -21,9 +21,7 @@
 extern Config config;
 extern Sound sound;
 
-extern "C" {
-    void libxml2_error_handler(void *ctx, const char *msg, ...);
-}
+extern "C" void libxml2_error_handler(void *ctx, const char *msg, ...);
 
 
 // Wrapper for libxml2 error messages

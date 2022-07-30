@@ -1,5 +1,8 @@
 #include <SDL_mixer.h>
 
+#define MAX_VOLUME 10
+#define RANGE_DB -40
+
 class SoundBite {
     public:
         Mix_Chunk *chunk;

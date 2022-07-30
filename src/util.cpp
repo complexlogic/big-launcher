@@ -6,6 +6,7 @@
 #include <fmt/core.h>
 #include <spdlog/spdlog.h>
 #include <ini.h>
+#include "sound.hpp"
 #include "main.hpp"
 #include "util.hpp"
 
@@ -24,7 +25,7 @@ Config::Config()
     sidebar_text_color_highlighted = {0xFF, 0xFF, 0xFF, 0xFF};
     mouse_select = false;
     sound_enabled = false;
-    sound_volume = 100;
+    sound_volume = MAX_VOLUME;
 }
 
 void Config::parse(const std::string &file)
@@ -43,6 +44,14 @@ void Config::add_bool(const char *value, bool &out)
     }
     else if (MATCH(value, "false") || MATCH(value, "False")) {
         out = false;
+    }
+}
+
+void Config::add_int(const char *value, int &out)
+{
+    int x = std::stoi(value);
+    if (x || *value == '0') {
+        out = x;
     }
 }
 
@@ -98,7 +107,7 @@ static int handler(void* user, const char* section, const char* name, const char
             config.add_bool(value, config.sound_enabled);
         }
         else if (MATCH(name, "Volume")) {
-            config.add_percent(value, config.sound_volume, 100);
+            config.add_int(value, config.sound_volume);
         }
 
     }

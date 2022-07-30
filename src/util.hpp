@@ -26,6 +26,7 @@ public:
     void add_string(const char *value, std::string &out);
     void add_bool(const char *value, bool &out);
     void add_path(const char *value, std::string &out);
+    
     template <typename T>
     void add_percent(const char *value, T &out, T ref, float min = 0.0f, float max = 1.0f);
 

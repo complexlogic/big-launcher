@@ -80,6 +80,7 @@ int Sound::init()
 
 int Sound::connect()
 {
+    spdlog::debug("Opening audio device...");
     int ret = Mix_OpenAudioDevice(44100,
                   AUDIO_S16SYS,
                   2,
@@ -93,7 +94,6 @@ int Sound::connect()
     }
     connected = true;
     Mix_QuerySpec(&frequency, NULL, &channels);
-    spdlog::debug("Opened {} channel audio at {} Hz", channels, frequency);
 
     // Load audio if needed
     if (click.frequency != frequency || click.channels != channels) {
@@ -110,31 +110,33 @@ int Sound::connect()
     }
 
     // Set volume
-    if (config.sound_volume != 100) {
+    if (config.sound_volume != MAX_VOLUME) {
         this->set_volume(0, config.sound_volume);
     }
 
+    spdlog::debug("Successfully opened {} channel audio at {} Hz", channels, frequency);
     return 0;
 }
 
-
-int Sound::set_volume(int channel, int log_volume)
+int Sound::set_volume(int channel, int volume)
 {
-    if (log_volume > 100 || log_volume < 0)
+    if (volume > MAX_VOLUME || volume < 0)
         return 1;
 
-    int volume;
-    if (log_volume == 0) {
-        volume = 0;
-    }
-    else if (log_volume == 100) {
-        volume = MIX_MAX_VOLUME;
-    }
-    else {
-        volume = (int) std::round(0.01f * pow(10.f, (double) log_volume * 0.02f) * (double) MIX_MAX_VOLUME);
-    }
-
-    Mix_Volume(channel, volume);
+    constexpr auto generate_array = []() {
+        double a = pow(10.f, (double) RANGE_DB / 20.f);
+        double b = log10(1.f / a) / (double) MAX_VOLUME;
+        std::array<int, MAX_VOLUME + 1> arr;
+        arr[0] = 0;
+        arr[MAX_VOLUME] = MIX_MAX_VOLUME;
+        for (int n = 1; n < MAX_VOLUME; n++) {
+            arr[n] = (int) std::round(a * pow(10.f, (double) n * b) * (double) MIX_MAX_VOLUME);
+        }
+        return arr;
+    };
+    static constexpr std::array<int, MAX_VOLUME + 1> volume_array = generate_array();
+    
+    Mix_Volume(channel, volume_array[volume]);
     return 0;
 }
 
