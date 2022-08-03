@@ -12,3 +12,7 @@ if (UNIX)
     PkgConfig::SPDLOG
   )
 endif ()
+
+add_subdirectory("platform")
+
+target_link_libraries(${EXECUTABLE_TITLE} platform)

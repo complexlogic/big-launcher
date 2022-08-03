@@ -20,7 +20,7 @@ The following must be accomplished before an initial release can be made:
 - [x] Command line parsing
 - [x] Automatic file searching
 - [x] Custom backgrounds
-- [ ] Application launching
+- [x] Application launching
 - [x] Audio
 - [ ] Gamepad controls
 - [ ] Hotkeys

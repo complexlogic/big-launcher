@@ -20,13 +20,17 @@
 #include "image.hpp"
 #include "sound.hpp"
 #include "util.hpp"
+#include "platform/platform.hpp"
 
 Display display;
+Layout layout;
 Config config;
 Sound sound;
 Ticks ticks;
 char *executable_dir;
 std::string log_path;
+
+State state = { false };
 
 
 Display::Display()
@@ -42,7 +46,7 @@ void Display::init()
 {
     int flags = SDL_INIT_VIDEO;
 #ifdef __unix__
-    SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+    //SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
 #endif
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,"1");
     //if (config.gamepad_enabled) {
@@ -161,6 +165,7 @@ void Display::close()
         SDL_DestroyWindow(window);
         window = NULL;
     }
+
     SDL_Quit();
     IMG_Quit();
     TTF_Quit();
@@ -230,13 +235,80 @@ static inline void parse_render_resolution(const char *string, int &w, int &h)
 }
 #endif
 
+void execute_command(const std::string &command)
+{
+    // Special commands
+    if (*(command.begin()) == ':') {
+        if (command.starts_with(":fork")) {
+            size_t space = command.find_first_of(' ');
+            if (space != std::string::npos) {
+                size_t cmd_begin = command.find_first_not_of(' ', space);
+                if (cmd_begin != std::string::npos) {
+                    start_process(command.substr(cmd_begin, command.size() - cmd_begin), false);
+                }
+            }
+        }
+        else if (command == ":left") {
+            layout.move_left();
+        }
+        else if (command == ":right") {
+            layout.move_right();
+        }
+        else if (command == ":up") {
+            layout.move_up();
+        }
+        else if (command == ":down") {
+            layout.move_down();
+        }
+        else if (command == ":select") {
+            layout.select();
+        }
+        else if (command == ":shutdown") {
+            scmd_shutdown();
+        }
+        else if (command == ":restart") {
+            scmd_restart();
+        }
+        else if (command == ":sleep") {
+            scmd_sleep();
+        }
+        else if (command == ":quit") {
+            quit(EXIT_SUCCESS);
+        }
+    }
+
+    // Application launching
+    else {
+        spdlog::debug("Executing command '{}'", command);
+        state.application_launching = start_process(command, true);
+        if (state.application_launching) {
+            spdlog::debug("Successfully launched command");
+            ticks.application_launch = ticks.main;
+        }
+        else {
+            spdlog::error("Failed to execute command");
+        }
+    }
+}
+
+static inline void pre_launch()
+{
+    if (sound.connected)
+        sound.disconnect();
+}
+
+static inline void post_launch()
+{
+    if (config.sound_enabled)
+        sound.connect();
+}
+
 int main(int argc, char *argv[])
 {
-    Layout layout;
     SDL_Event event;
     std::string config_path;
     std::string layout_path;
-    char c;
+    int c;
     executable_dir = SDL_GetBasePath();
     
     // Parse command line
@@ -374,9 +446,11 @@ int main(int argc, char *argv[])
 #endif
 
     // Main program loop
+    spdlog::debug("");
     spdlog::debug("Begin main loop");
     while(1) {
         ticks.main = SDL_GetTicks();
+        layout.update();
         while(SDL_PollEvent(&event)) {
             switch(event.type) {
                 case SDL_QUIT:
@@ -384,31 +458,59 @@ int main(int argc, char *argv[])
                     break;
 
                 case SDL_KEYDOWN:
-                    if (event.key.keysym.sym == SDLK_ESCAPE) {
-                        quit(EXIT_SUCCESS);
+                    if (!state.application_launching) {
+                        if (event.key.keysym.sym == SDLK_ESCAPE) {
+                            quit(EXIT_SUCCESS);
+                        }
+                        else if (event.key.keysym.sym == SDLK_DOWN) {
+                            layout.move_down();
+                        }
+                        else if (event.key.keysym.sym == SDLK_UP) {
+                            layout.move_up();
+                        }
+                        else if (event.key.keysym.sym == SDLK_LEFT) {
+                            layout.move_left();
+                        }
+                        else if (event.key.keysym.sym == SDLK_RIGHT) {
+                            layout.move_right();
+                        }
+                        else if (event.key.keysym.sym == SDLK_RETURN) {
+                            layout.select();
+                        }
+                        SDL_FlushEvent(SDL_KEYDOWN);
                     }
-                    else if (event.key.keysym.sym == SDLK_DOWN) {
-                        layout.move_down();
+                    break;
+
+                case SDL_WINDOWEVENT:
+                    if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+                        spdlog::debug("Lost window focus");
+                        if (state.application_launching) {
+                            state.application_launching = false;
+                            state.application_running = true;
+                            pre_launch();
+                        }
                     }
-                    else if (event.key.keysym.sym == SDLK_UP) {
-                        layout.move_up();
+                    else if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
+                        spdlog::debug("Gained window focus");
+                        if (state.application_running) {
+                            state.application_running = false;
+                            post_launch();
+                        }
                     }
-                    else if (event.key.keysym.sym == SDLK_LEFT) {
-                        layout.move_left();
-                    }
-                    else if (event.key.keysym.sym == SDLK_RIGHT) {
-                        layout.move_right();
-                    }
-                    else if (event.key.keysym.sym == SDLK_RETURN) {
-                        sound.play_select();
-                    }
-                    SDL_FlushEvent(SDL_KEYDOWN);
                     break;
             }
         }
-        layout.draw();
-        layout.shift();
-    }
 
+        if (state.application_launching && 
+        ticks.main - ticks.application_launch > APPLICATION_TIMEOUT) {
+            state.application_launching = false;
+        }
+        if (state.application_running) {
+            SDL_Delay(APPLICATION_WAIT_PERIOD);
+        }
+        else {
+            layout.draw();
+        }
+    }
     return 0;
 }

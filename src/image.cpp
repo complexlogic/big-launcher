@@ -146,10 +146,12 @@ Font::Font()
 
 Font::~Font()
 {
+    /*
     if (font != NULL) {
         TTF_CloseFont(font);
         font = NULL;
     }
+    */
 }
 
 

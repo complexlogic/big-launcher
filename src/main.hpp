@@ -2,7 +2,10 @@
 #include <SDL_mixer.h>
 
 #define DISPLAY_ASPECT_RATIO 1.77777778
-#define DISPLAY_ASPECT_RATIO_TOLERANCE 0.01f 
+#define DISPLAY_ASPECT_RATIO_TOLERANCE 0.01f
+#define APPLICATION_WAIT_PERIOD 100
+#define APPLICATION_TIMEOUT 10000
+
 
 class Display {
     public:
@@ -23,7 +26,15 @@ class Display {
 
 typedef struct {
     Uint32 main;
+    Uint32 application_launch;
 } Ticks;
+
+
+typedef struct {
+    bool application_launching;
+    bool application_running;
+} State;
+
 
 #ifdef __GNUC__
 #define COMPILER_INFO(f, end) f("Compiler:   GCC {}.{}" end, __GNUC__, __GNUC_MINOR__);
@@ -51,4 +62,5 @@ static void name##_version() {                                                  
     COMPILER_INFO(f, end);                                                                        \
 }
 
+void execute_command(const std::string &command);
 void quit(int status);

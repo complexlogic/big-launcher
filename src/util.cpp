@@ -35,6 +35,7 @@ void Config::parse(const std::string &file)
         spdlog::critical("Failed to parse config file");
         quit(EXIT_FAILURE);
     }
+    spdlog::debug("Sucessfully parsed config file");
 }
 
 void Config::add_bool(const char *value, bool &out)

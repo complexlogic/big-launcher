@@ -17,6 +17,7 @@
 #include "main.hpp"
 #include "sound.hpp"
 #include "util.hpp"
+#include "platform/platform.hpp"
 
 extern Config config;
 extern Sound sound;
@@ -468,6 +469,7 @@ Layout::Layout()
     background_surface = NULL;
     background_texture = NULL;
     card_shadow = NULL;
+    pressed_entry = NULL;
 }
 
 void Layout::parse(const std::string &file)
@@ -648,8 +650,57 @@ void MenuHighlight::render_texture(SDL_Renderer *renderer)
 }
 
 
+PressedEntry::PressedEntry(Entry *entry)
+{
+    this->entry = entry;
+    original_rect = entry->rect;
+    total = (int) std::round((float) original_rect.w * ENTRY_SHRINK_DISTANCE);
+    direction = DIRECTION_RIGHT;
+    aspect_ratio = (float) original_rect.w / (float) original_rect.h;
+    current = 0;
+    velocity = ((float) (2 * total)) / (float) ENTRY_PRESS_TIME;
+    ticks = SDL_GetTicks();
+}
+
+
+bool PressedEntry::update()
+{
+    bool ret = false;
+    Uint32 current_ticks = SDL_GetTicks();
+    int change = (int) std::round((float) (current_ticks - ticks) * velocity);
+    if (direction == DIRECTION_RIGHT) {
+        current += change;
+        if (current >=total) {
+            current = total;
+            direction = DIRECTION_LEFT;
+        }
+    }
+    else if (direction == DIRECTION_LEFT) {
+        current -= change;
+        if (current <= 0) {
+            current = 0;
+            ret = true;
+            execute_command(entry->command);
+        }
+
+    }
+    int w = original_rect.w - 2 * current;
+    int h = (int) std::round((float) w / aspect_ratio);
+    entry->rect = {
+        original_rect.x + current,
+        original_rect.y + (int) std::round((float) current / aspect_ratio),
+        w,
+        h
+    };
+
+    ticks = current_ticks;
+    return ret;
+}
+
+
 void Layout::load_surfaces(int screen_width, int screen_height)
 {
+    spdlog::debug("Rendering surfaces...");
     this->screen_width = screen_width;
     this->screen_height = screen_height;
     f_screen_width = (float) screen_width;
@@ -778,6 +829,7 @@ void Layout::load_surfaces(int screen_width, int screen_height)
 void Layout::load_textures(SDL_Renderer *renderer)
 {
     this->renderer = renderer;
+    spdlog::debug("Rendering textures...");
 
     // Background texture
     if (background_surface != NULL) {
@@ -993,6 +1045,23 @@ void Layout::move_right()
     }
 }
 
+void Layout::select()
+{
+    if (selection_mode == SELECTION_SIDEBAR) {
+        if ((*current_entry)->type == COMMAND) {
+            Command *command = (Command*) *current_entry;
+            execute_command(command->command);
+            sound.play_select();
+        }
+    }
+    else if (selection_mode == SELECTION_MENU) {
+        Entry *entry = (*(current_menu->current_entry));
+        spdlog::debug("User selected entry '{}'", entry->title);
+        pressed_entry = new PressedEntry(entry);
+        sound.play_select();
+    }
+}
+
 void Layout::add_shift(ShiftType type, Direction direction, int target, float time, Menu *menu)
 {
     static const Direction opposites[] = {
@@ -1079,6 +1148,18 @@ void Layout::shift()
         shift->ticks = ticks;
         (shift->target == shift->total) ? shift_queue.erase(shift) : ++shift;
     }
+}
+
+void Layout::update()
+{
+    if (shift_queue.size())
+        this->shift();
+
+    if (pressed_entry != NULL && pressed_entry->update()) {
+        delete pressed_entry;
+        pressed_entry = NULL;
+    }
+    
 }
 
 void Layout::draw()

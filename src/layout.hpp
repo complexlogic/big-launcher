@@ -7,6 +7,9 @@
 #define ROW_SHIFT_TIME 120.0f
 #define HIGHLIGHT_SHIFT_TIME 100.0f
 
+#define ENTRY_PRESS_TIME 100
+#define ENTRY_SHRINK_DISTANCE 0.04f
+
 #define COLUMNS 3
 #define TOP_MARGIN 0.2f
 #define BOTTOM_MARGIN 1.0f
@@ -93,6 +96,25 @@ class Entry {
 
 
 };
+
+
+class PressedEntry {
+    public:
+        Entry *entry;
+        SDL_Rect original_rect;
+        int total;
+        Uint32 ticks;
+        int current;
+        float velocity;
+        Direction direction;
+        float aspect_ratio;
+
+        PressedEntry(Entry *entry);
+        bool update();
+
+};
+
+
 
 class SidebarEntry {
     public:
@@ -222,17 +244,21 @@ class Layout {
         int highlight_x_advance;
         int highlight_y_advance;
 
+        PressedEntry *pressed_entry;
+
     public:
         Layout();
         void parse(const std::string &file);
         void add_entry();
         void load_surfaces(int screen_width, int screen_height);
         void load_textures(SDL_Renderer *renderer);
+        void update(void);
         void draw();
         void move_down();
         void move_up();
         void move_left();
         void move_right();
+        void select(void);
         void add_shift(ShiftType type, Direction direction, int target, float time, Menu *menu);
         void shift();
 };
