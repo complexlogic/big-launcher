@@ -1,3 +1,6 @@
+#ifndef HAS_LAYOUT_H
+#define HAS_LAYOUT_H
+
 #include <string>
 #include <vector>
 #include <set>
@@ -262,3 +265,5 @@ class Layout {
         void add_shift(ShiftType type, Direction direction, int target, float time, Menu *menu);
         void shift();
 };
+
+#endif

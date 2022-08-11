@@ -1,5 +1,6 @@
-#ifndef IMAGE_INCLUDED
-#define IMAGE_INCLUDED
+#ifndef HAS_IMAGE_H
+#define HAS_IMAGE_H
+
 #include "external/nanosvg.h"
 #include <SDL_ttf.h>
 
@@ -54,9 +55,6 @@ void quit_svg(void);
 SDL_Surface *rasterize_svg_from_file(const std::string &file, int w, int h);
 SDL_Surface *rasterize_svg(const std::string &buffer, int w, int h);
 SDL_Surface *rasterize_svg_image(NSVGimage *image, int w, int h);
-
-
 SDL_Surface* create_shadow(SDL_Surface *in, const std::vector<BoxShadow> &box_shadows, int s_offset);
-
 
 #endif

@@ -1054,7 +1054,7 @@ void Layout::select()
             sound.play_select();
         }
     }
-    else if (selection_mode == SELECTION_MENU) {
+    else if (selection_mode == SELECTION_MENU && pressed_entry == NULL) {
         Entry *entry = (*(current_menu->current_entry));
         spdlog::debug("User selected entry '{}'", entry->title);
         pressed_entry = new PressedEntry(entry);

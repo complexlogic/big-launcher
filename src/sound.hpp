@@ -1,3 +1,6 @@
+#ifndef HAS_SOUND_H
+#define HAS_SOUND_H
+
 #include <SDL_mixer.h>
 
 #define MAX_VOLUME 10
@@ -36,3 +39,5 @@ class Sound {
         void play_select();
 
 };
+
+#endif

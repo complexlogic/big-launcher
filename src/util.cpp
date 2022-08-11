@@ -28,10 +28,11 @@ Config::Config()
     sound_volume = MAX_VOLUME;
 }
 
-void Config::parse(const std::string &file)
+void Config::parse(const std::string &file, Gamepad &gamepad)
 {
+    ConfigInfo info = {gamepad};
     spdlog::debug("Parsing config file '{}'", file);
-    if (ini_parse(file.c_str(), handler, NULL) < 0) {
+    if (ini_parse(file.c_str(), handler, (void*) &info) < 0) {
         spdlog::critical("Failed to parse config file");
         quit(EXIT_FAILURE);
     }
@@ -103,6 +104,7 @@ static int handler(void* user, const char* section, const char* name, const char
             config.add_path(value, config.background_image_path);
         }
     }
+
     else if (MATCH(section, "Sound")) {
         if (MATCH(name, "Enabled")) {
             config.add_bool(value, config.sound_enabled);
@@ -110,7 +112,22 @@ static int handler(void* user, const char* section, const char* name, const char
         else if (MATCH(name, "Volume")) {
             config.add_int(value, config.sound_volume);
         }
+    }
 
+    else if (MATCH(section, "Gamepad")) {
+        if (MATCH(name, "Enabled")) {
+            config.add_bool(value, config.gamepad_enabled);
+        }
+        else if (MATCH(name, "DeviceIndex")) {
+            config.add_int(value, config.gamepad_index);
+        }
+        else if (MATCH(name, "MappingsFile")) {
+            config.add_path(value, config.gamepad_mappings_file);
+        }
+        else {
+            ConfigInfo *info = (ConfigInfo*) user;
+            info->gamepad.add_control(name, value);
+        }
     }
     return 0;
 }

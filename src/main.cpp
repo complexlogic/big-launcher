@@ -25,6 +25,7 @@
 Display display;
 Layout layout;
 Config config;
+Gamepad gamepad;
 Sound sound;
 Ticks ticks;
 char *executable_dir;
@@ -39,21 +40,17 @@ Display::Display()
     window = NULL;
     width = 0;
     height = 0;
-    refresh_period = 0;
 }
 
 void Display::init()
 {
-    int flags = SDL_INIT_VIDEO;
 #ifdef __unix__
     //SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
 #endif
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,"1");
-    //if (config.gamepad_enabled) {
-      //  sdl_flags |= SDL_INIT_GAMECONTROLLER;
-   // }
+
     // Initialize SDL
-    if (SDL_Init(flags) < 0)
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         spdlog::critical("Could not initialize SDL");
         spdlog::critical("SDL Error: {}", SDL_GetError());
@@ -62,12 +59,11 @@ void Display::init()
 
     if (SDL_GetDesktopDisplayMode(0, &dm) < 0) {
         spdlog::critical("Could not get desktop display mode");
-        spdlog::critical("SDL Error: {}\n", SDL_GetError());
+        spdlog::critical("SDL Error: {}", SDL_GetError());
         quit(EXIT_FAILURE);
     }
     width = dm.w;
     height = dm.h;
-    refresh_period = 1000 / dm.refresh_rate;
 
     // Force 16:9 aspect ratio
     float aspect_ratio = (float) width / (float) height;
@@ -78,15 +74,8 @@ void Display::init()
         height = (int) std::round((float) width / DISPLAY_ASPECT_RATIO);
     }
 
-    /*
-    if (config.gamepad_enabled) {
-        delay_period = GAMEPAD_REPEAT_DELAY / refresh_period;
-        repeat_period = GAMEPAD_REPEAT_INTERVAL / refresh_period; 
-    }
-    */
-
     // Initialize SDL_image
-    flags = IMG_INIT_PNG | IMG_INIT_JPG | IMG_INIT_WEBP; 
+    constexpr int flags = IMG_INIT_PNG | IMG_INIT_JPG | IMG_INIT_WEBP; 
     if (!(IMG_Init(flags) & flags)) {
         spdlog::critical("Could not initialize SDL_image");
         spdlog::critical("SDL Error: {}", IMG_GetError());
@@ -184,6 +173,214 @@ void Display::print_debug_info()
     );
 }
 
+Gamepad::Gamepad()
+{
+    controller = NULL;
+    selected_axis = NULL;
+}
+
+int Gamepad::init()
+{
+    spdlog::debug("Initializing game controller subsystem...");
+    if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) < 0) {
+        spdlog::error("Could not initialize game controller subsystem");
+        spdlog::error("SDL Error: {}", SDL_GetError());
+        return 1;
+    }
+    spdlog::debug("Successfully initialized game controller subsystem");
+
+    int refresh_period = 1000 / display.dm.refresh_rate;
+    delay_period = GAMEPAD_REPEAT_DELAY / refresh_period;
+    repeat_period = GAMEPAD_REPEAT_INTERVAL / refresh_period;
+
+    if (!config.gamepad_mappings_file.empty()) {
+        if (SDL_GameControllerAddMappingsFromFile(config.gamepad_mappings_file.c_str()) < 0) {
+            spdlog::error("Could not load gamepad mappings from file '{}'", 
+                config.gamepad_mappings_file.c_str()
+            );
+        }
+    }
+    return 0;
+}
+
+void Gamepad::connect(int device_index, bool raise_error)
+{
+    controller = SDL_GameControllerOpen(device_index);
+    if (controller == NULL) {
+        connected = false;
+        if (raise_error) {
+            spdlog::error("Could not connect to gamepad");
+            spdlog::error("SDL Error: {}", SDL_GetError());
+        }
+        return;
+    }
+    connected = true;
+    spdlog::debug("Sucessfully connected to gamepad");
+    if (config.debug && raise_error) {
+        char *mapping = SDL_GameControllerMappingForDeviceIndex(device_index);
+        if (mapping == NULL) {
+            spdlog::debug("Could not get mapping");
+        }
+        else {
+            spdlog::debug("Gamepad mapping: {}", mapping);
+            SDL_free(mapping);
+        }
+    }
+}
+
+void Gamepad::disconnect()
+{
+    SDL_GameControllerClose(controller);
+    controller = NULL;
+    connected = false;
+    spdlog::debug("Disconnected gamepad");
+}
+
+void Gamepad::add_control(const char *label, const char *cmd)
+{
+    static const GamepadInfo infos[] = {
+        {"LStickX-",         TYPE_LSTICK,  DIRECTION_XM,   SDL_CONTROLLER_AXIS_LEFTX},
+        {"LStickX+",         TYPE_LSTICK,  DIRECTION_XP,   SDL_CONTROLLER_AXIS_LEFTX},
+        {"LStickY-",         TYPE_LSTICK,  DIRECTION_YM,   SDL_CONTROLLER_AXIS_LEFTY},
+        {"LStickY+",         TYPE_LSTICK,  DIRECTION_YP,   SDL_CONTROLLER_AXIS_LEFTY},
+        {"RStickX-",         TYPE_RSTICK,  DIRECTION_XM,   SDL_CONTROLLER_AXIS_RIGHTX},
+        {"RStickX+",         TYPE_RSTICK,  DIRECTION_XP,   SDL_CONTROLLER_AXIS_RIGHTX},
+        {"RStickY-",         TYPE_RSTICK,  DIRECTION_YM,   SDL_CONTROLLER_AXIS_RIGHTY},
+        {"RStickY+",         TYPE_RSTICK,  DIRECTION_YP,   SDL_CONTROLLER_AXIS_RIGHTY},
+        {"LTrigger",         TYPE_TRIGGER, DIRECTION_NONE, SDL_CONTROLLER_AXIS_TRIGGERLEFT},
+        {"RTrigger",         TYPE_TRIGGER, DIRECTION_NONE, SDL_CONTROLLER_AXIS_TRIGGERRIGHT},
+        {"ButtonA",          TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_A},
+        {"ButtonB",          TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_B},
+        {"ButtonX",          TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_X},
+        {"ButtonY",          TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_Y},
+        {"ButtonBack",       TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_BACK},
+        {"ButtonGuide",      TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_GUIDE},
+        {"ButtonStart",      TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_START},
+        {"ButtonLStick",     TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_LEFTSTICK},
+        {"ButtonRStick",     TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_RIGHTSTICK},
+        {"ButtonLShoulder",  TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_LEFTSHOULDER},
+        {"ButtonRShoulder",  TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER},
+        {"ButtonDPadUp",     TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_DPAD_UP},
+        {"ButtonDPadDown",   TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_DPAD_DOWN},
+        {"ButtonDPadLeft",   TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_DPAD_LEFT},
+        {"ButtonDPadRight",  TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_DPAD_RIGHT}
+    };
+
+    static const SDL_GameControllerAxis opposing_axes[] = {
+        SDL_CONTROLLER_AXIS_LEFTY,
+        SDL_CONTROLLER_AXIS_LEFTX,
+        SDL_CONTROLLER_AXIS_RIGHTY,
+        SDL_CONTROLLER_AXIS_RIGHTX,
+    };
+
+    auto it = std::find_if(std::cbegin(infos), 
+                  std::cend(infos), 
+                  [&](const GamepadInfo &info) {return strcmp(label, info.label) == 0;}
+              );
+    if (it != std::cend(infos)) {
+        controls.push_back({it->type, it->index, it->direction, it->label, cmd});
+
+        // Add control stick for axis if it doesn't already exist
+        if (it->type == TYPE_LSTICK || it->type == TYPE_RSTICK) {
+            SDL_GameControllerAxis opposing_axis = opposing_axes[it->index];
+            auto a = std::find_if(sticks.begin(),
+                        sticks.end(),
+                        [&](auto &stick) {return stick.axes[0] == it->index || stick.axes[1] == it->index;}
+                     );
+            if (a == sticks.end()) {
+                sticks.push_back(
+                    {
+                        (ControlType) it->type,
+                        {(SDL_GameControllerAxis) it->index, opposing_axis}
+                    }
+                );
+            }
+        }
+    }
+}
+
+void Gamepad::poll()
+{
+    // Poll sticks
+    if (!sticks.empty()) {
+        AxisType axis_type;
+        for (const auto &stick : sticks) {
+
+            // Poll individual axes in stick
+            for (auto axis : stick.axes) {
+                axis_type = (axis == SDL_CONTROLLER_AXIS_LEFTX || axis == SDL_CONTROLLER_AXIS_RIGHTX) ? AXIS_X : AXIS_Y;
+                axis_values[stick.type][axis_type] = SDL_GameControllerGetAxis(controller, axis);
+            }
+            AxisType max_axis = (abs(axis_values[stick.type][AXIS_X]) >= abs(axis_values[stick.type][AXIS_Y])) ? AXIS_X : AXIS_Y;
+            if (abs(axis_values[stick.type][max_axis]) < GAMEPAD_DEADZONE)
+                continue;
+            
+            // Determine direction of stick movement
+            StickDirection direction;
+            if (max_axis == AXIS_X) {
+                if (axis_values[stick.type][AXIS_X] < 0) {
+                    direction = DIRECTION_XM;
+                }
+                else {
+                    direction = DIRECTION_XP;
+                }
+            }
+            else if (max_axis == AXIS_Y) {
+                if (axis_values[stick.type][AXIS_Y] < 0) {
+                    direction = DIRECTION_YM;
+                }
+                else {
+                    direction = DIRECTION_YP;
+                }
+            }
+
+            // Save set selected axis if stick press is within range of a control
+            auto it = std::find_if(controls.begin(),
+                          controls.end(),
+                          [&](auto control){return stick.type == control.type && direction == control.direction;}
+                      );
+            if (it != controls.end()) {
+                AxisType min_axis = (max_axis == AXIS_X) ? AXIS_Y : AXIS_X;
+                if (abs(axis_values[stick.type][min_axis]) < abs((int) std::round((float) axis_values[stick.type][max_axis] * max_opposing)))
+                    selected_axis = &*it;
+            }
+
+        }
+    }
+
+    for (GamepadControl &control : controls) {
+        if (control.type == TYPE_LSTICK || control.type == TYPE_RSTICK) {
+            if (&control == selected_axis) {
+                control.repeat++;
+                selected_axis = NULL;
+            }
+            else {
+                control.repeat = 0;
+            }
+        }
+
+        // Poll buttons
+        else {
+            if ((control.type == TYPE_BUTTON && SDL_GameControllerGetButton(controller, (SDL_GameControllerButton) control.index)) ||
+            (control.type == TYPE_TRIGGER && SDL_GameControllerGetAxis(controller, (SDL_GameControllerAxis) control.index) > GAMEPAD_DEADZONE)) {
+                control.repeat++;
+            }
+            else {
+                control.repeat = 0;
+            }
+        }
+
+        if (control.repeat == 1) {
+            spdlog::debug("Gamepad {} detected", control.label);
+            execute_command(control.command);
+        }
+        else if (control.repeat == delay_period) {
+            execute_command(control.command);
+            control.repeat -= repeat_period;
+        }
+    }
+}
+
 static void cleanup()
 {
     display.close();
@@ -210,11 +407,11 @@ VERSION(print, fmt::print, "\n")
 static void print_help()
 {
     fmt::print("Usage: " EXECUTABLE_TITLE " [OPTIONS]\n");
-    fmt::print("  -c p, --config=p   Load config file from path p.\n");
-    fmt::print("  -l p, --layout=p   Load layout file from path p.\n");
-    fmt::print("  -d,   --debug      Enable debug messages.\n");
-    fmt::print("  -h,   --help       Show this help message.\n");
-    fmt::print("  -v,   --version    Print version information.\n");
+    fmt::print("    -c p, --config=p     Load config file from path p.\n");
+    fmt::print("    -l p, --layout=p     Load layout file from path p.\n");
+    fmt::print("    -d,   --debug        Enable debug messages.\n");
+    fmt::print("    -h,   --help         Show this help message.\n");
+    fmt::print("    -v,   --version      Print version information.\n");
 }
 #endif
 
@@ -238,7 +435,7 @@ static inline void parse_render_resolution(const char *string, int &w, int &h)
 void execute_command(const std::string &command)
 {
     // Special commands
-    if (*(command.begin()) == ':') {
+    if (command.front() == ':') {
         if (command.starts_with(":fork")) {
             size_t space = command.find_first_of(' ');
             if (space != std::string::npos) {
@@ -282,7 +479,7 @@ void execute_command(const std::string &command)
         spdlog::debug("Executing command '{}'", command);
         state.application_launching = start_process(command, true);
         if (state.application_launching) {
-            spdlog::debug("Successfully launched command");
+            spdlog::debug("Successfully executed command");
             ticks.application_launch = ticks.main;
         }
         else {
@@ -295,12 +492,17 @@ static inline void pre_launch()
 {
     if (sound.connected)
         sound.disconnect();
+    if (gamepad.connected)
+        gamepad.disconnect();
 }
 
 static inline void post_launch()
 {
     if (config.sound_enabled)
         sound.connect();
+    if (config.gamepad_enabled)
+        gamepad.connect(config.gamepad_index, false);
+        
 }
 
 int main(int argc, char *argv[])
@@ -404,12 +606,17 @@ int main(int argc, char *argv[])
         quit(EXIT_FAILURE);
     }
 
+
+    // Parse files, initialize libraries
     layout.parse(layout_path);
-    config.parse(config_path);
+    config.parse(config_path, gamepad);
     display.init();
     init_svg();
     if (config.sound_enabled && sound.init()) {
         config.sound_enabled = false;
+    }
+    if (config.gamepad_enabled && gamepad.init()) {
+        config.gamepad_enabled = false;
     }
 
 #ifdef DEBUG
@@ -428,6 +635,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
+    // Render graphics
     layout.load_surfaces(display.width, display.height);
     display.create_window();
     layout.load_textures(display.renderer);
@@ -481,25 +689,50 @@ int main(int argc, char *argv[])
                     }
                     break;
 
+                case SDL_JOYDEVICEADDED:
+                    if (SDL_IsGameController(event.jdevice.which) == SDL_TRUE) {
+                        if (config.debug) {
+                            spdlog::debug("Detected gamepad '{}' at device index {}",
+                                SDL_GameControllerNameForIndex(event.jdevice.which),
+                                event.jdevice.which
+                            );
+                            //spdlog::debug("Mapping: {}", SDL_GameControllerMappingForIndex(event.jdevice.which));
+                        }
+                        if (event.jdevice.which == config.gamepad_index)
+                            gamepad.connect(event.jdevice.which, true);
+                    }
+                    else if (config.debug) {
+                        spdlog::debug("Unrecognized joystick detected at device index {}", event.jdevice.which);
+                    }
+                    break;
+
+                case SDL_JOYDEVICEREMOVED:
+                    if (event.jdevice.which == config.gamepad_index)
+                        gamepad.disconnect();
+                    break;
+
                 case SDL_WINDOWEVENT:
                     if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
                         spdlog::debug("Lost window focus");
                         if (state.application_launching) {
+                            pre_launch();
                             state.application_launching = false;
                             state.application_running = true;
-                            pre_launch();
                         }
                     }
                     else if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
                         spdlog::debug("Gained window focus");
                         if (state.application_running) {
-                            state.application_running = false;
                             post_launch();
+                            state.application_running = false;
                         }
                     }
                     break;
             }
         }
+
+        if (gamepad.connected && !state.application_launching)
+            gamepad.poll();
 
         if (state.application_launching && 
         ticks.main - ticks.application_launch > APPLICATION_TIMEOUT) {
