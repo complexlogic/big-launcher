@@ -993,17 +993,19 @@ void Layout::move_left()
 {
     if (selection_mode == SELECTION_MENU) {
         if (current_menu->column == 0) {
-            selection_mode = SELECTION_SIDEBAR;
-            set_texture_color((*current_entry)->texture, config.sidebar_text_color_highlighted);
-            current_menu->row = 0;
-            menu_highlight.rect.y = highlight_y0;
-            current_menu->current_entry = current_menu->entry_list.begin();
-            
-            // Reset menu shift
-            if (current_menu->shift_count) {
-                int shift_amount = current_menu->shift_count*card_y_advance;
-                this->add_shift(SHIFT_MENU, DIRECTION_DOWN, shift_amount, HIGHLIGHT_SHIFT_TIME, current_menu);
-                current_menu->shift_count = 0;
+            if (!shift_queue.size()) {
+                selection_mode = SELECTION_SIDEBAR;
+                set_texture_color((*current_entry)->texture, config.sidebar_text_color_highlighted);
+                current_menu->row = 0;
+                menu_highlight.rect.y = highlight_y0;
+                current_menu->current_entry = current_menu->entry_list.begin();
+                
+                // Reset menu shift
+                if (current_menu->shift_count) {
+                    int shift_amount = current_menu->shift_count*card_y_advance;
+                    this->add_shift(SHIFT_MENU, DIRECTION_DOWN, shift_amount, HIGHLIGHT_SHIFT_TIME, current_menu);
+                    current_menu->shift_count = 0;
+                }
             }
         }
         else {
@@ -1021,7 +1023,7 @@ void Layout::move_left()
 
 void Layout::move_right()
 {
-    if (selection_mode == SELECTION_SIDEBAR && current_menu != NULL) {
+    if (selection_mode == SELECTION_SIDEBAR && current_menu != NULL && !shift_queue.size()) {
         selection_mode = SELECTION_MENU;
         set_texture_color((*current_entry)->texture, config.sidebar_text_color);
         if (sound.connected)

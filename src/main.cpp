@@ -348,9 +348,11 @@ void Gamepad::poll()
         }
     }
 
+
+    // Check each control
     for (GamepadControl &control : controls) {
         if (control.type == TYPE_LSTICK || control.type == TYPE_RSTICK) {
-            if (&control == selected_axis) {
+            if (&control == selected_axis) { // We already polled for the stick
                 control.repeat++;
                 selected_axis = NULL;
             }
