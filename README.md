@@ -5,7 +5,7 @@
 
 The project will be Linux-only while in development, but Windows will be supported in the final released version. The program will be written in C++ and utilize SDL for graphics.
 
-The program has progressed to the point where it can be used in a working HTPC setup, but it's not ready for release yet. I still need to prove the appearance, stability/error handling, and implement a few more desired features.
+The program has progressed to the point where it can be used in a working HTPC setup, but it's not ready for release yet. I still need to improve the appearance, stability/error handling, and implement a few more desired features.
 
 ![Screenshot](https://user-images.githubusercontent.com/95071366/181177048-306a31fb-f5e1-4816-896a-799b690df593.png)
 
