@@ -11,10 +11,7 @@
 #include "util.hpp"
 
 
-extern "C" {
-    static int handler(void* user, const char* section, const char* name, const char* value);
-}
-
+extern "C" int handler(void* user, const char* section, const char* name, const char* value);
 extern Config config;
 
 Config::Config()
@@ -29,9 +26,9 @@ Config::Config()
     sound_volume = MAX_VOLUME;
 }
 
-void Config::parse(const std::string &file, Gamepad &gamepad)
+void Config::parse(const std::string &file, Gamepad &gamepad, HotkeyList &hotkey_list)
 {
-    ConfigInfo info = {gamepad};
+    ConfigInfo info = {gamepad, hotkey_list};
     spdlog::debug("Parsing config file '{}'", file);
     if (ini_parse(file.c_str(), handler, (void*) &info) < 0) {
         spdlog::critical("Failed to parse config file");
@@ -86,7 +83,7 @@ void Config::add_percent(const char *value, T &out, T ref, float min, float max)
 }
 
 
-static int handler(void* user, const char* section, const char* name, const char* value)
+int handler(void* user, const char* section, const char* name, const char* value)
 {
     if (MATCH(section, "Settings")) {
         if (MATCH(name, "MouseSelect")) {
@@ -117,6 +114,11 @@ static int handler(void* user, const char* section, const char* name, const char
         else if (MATCH(name, "Volume")) {
             config.add_int(value, config.sound_volume);
         }
+    }
+
+    else if (MATCH(section, "Hotkeys")) {
+        ConfigInfo *info = (ConfigInfo*) user;
+        info->hotkey_list.add(value);
     }
 
     else if (MATCH(section, "Gamepad")) {

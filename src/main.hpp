@@ -100,6 +100,23 @@ class Gamepad {
         void poll();
 };
 
+typedef struct Hotkey {
+    SDL_Keycode keycode;
+    std::string command;
+    Hotkey(SDL_Keycode keycode, char *command) : keycode(keycode), command(command) {};
+} Hotkey;
+
+class HotkeyList {
+    private:
+        std::vector<Hotkey> list;
+
+    public:
+        void add(const char *value);
+        std::vector<Hotkey>::iterator begin(void);
+        std::vector<Hotkey>::iterator end(void);
+        size_t size(void);
+};
+
 typedef struct {
     Uint32 main;
     Uint32 application_launch;

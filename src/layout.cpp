@@ -1185,7 +1185,6 @@ void Layout::draw()
         SDL_RenderCopy(renderer, background_texture, NULL, NULL);
     }
 
-
     // Draw sidebar highlight
     if (selection_mode == SELECTION_SIDEBAR) {
         y = sidebar_highlight.rect.y;

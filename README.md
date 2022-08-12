@@ -23,7 +23,7 @@ The following must be accomplished before an initial release can be made:
 - [x] Application launching
 - [x] Audio
 - [x] Gamepad controls
-- [ ] Hotkeys
+- [x] Hotkeys
 - [ ] Screensaver
 - [ ] Clock
 - [ ] Config/layout file generation

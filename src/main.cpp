@@ -383,6 +383,36 @@ void Gamepad::poll()
     }
 }
 
+void HotkeyList::add(const char *value)
+{
+    std::string_view string = value;
+    size_t pos = string.find_first_of(";");
+    if (pos == std::string::npos || pos == (string.size() - 1))
+        return;
+
+    std::string keycode_s(string, 0, pos);
+    SDL_Keycode keycode = (SDL_Keycode) strtol(keycode_s.c_str(), NULL, 16);
+    if (!keycode)
+        return;
+
+    list.push_back(Hotkey(keycode, (char*) value + pos + 1));
+}
+
+inline std::vector<Hotkey>::iterator HotkeyList::begin()
+{
+    return list.begin();
+}
+
+inline std::vector<Hotkey>::iterator HotkeyList::end()
+{
+    return list.end();
+}
+
+inline size_t HotkeyList::size()
+{
+    return list.size();
+}
+
 static void cleanup()
 {
     display.close();
@@ -514,6 +544,7 @@ int main(int argc, char *argv[])
     std::string layout_path;
     int c;
     executable_dir = SDL_GetBasePath();
+    HotkeyList hotkey_list;
     
     // Parse command line
     const char *short_opts = "+c:l:dhv";
@@ -611,7 +642,7 @@ int main(int argc, char *argv[])
 
     // Parse files, initialize libraries
     layout.parse(layout_path);
-    config.parse(config_path, gamepad);
+    config.parse(config_path, gamepad, hotkey_list);
     display.init();
     init_svg();
     if (config.sound_enabled && sound.init()) {
@@ -669,10 +700,7 @@ int main(int argc, char *argv[])
 
                 case SDL_KEYDOWN:
                     if (!state.application_launching) {
-                        if (event.key.keysym.sym == SDLK_ESCAPE) {
-                            quit(EXIT_SUCCESS);
-                        }
-                        else if (event.key.keysym.sym == SDLK_DOWN) {
+                        if (event.key.keysym.sym == SDLK_DOWN) {
                             layout.move_down();
                         }
                         else if (event.key.keysym.sym == SDLK_UP) {
@@ -687,6 +715,15 @@ int main(int argc, char *argv[])
                         else if (event.key.keysym.sym == SDLK_RETURN) {
                             layout.select();
                         }
+
+                        // Check hotkeys
+                        else {
+                            for (Hotkey &hotkey : hotkey_list) {
+                                if (hotkey.keycode == event.key.keysym.sym) {
+                                    execute_command(hotkey.command);
+                                } 
+                            }
+                        }
                         SDL_FlushEvent(SDL_KEYDOWN);
                     }
                     break;
@@ -698,7 +735,6 @@ int main(int argc, char *argv[])
                                 SDL_GameControllerNameForIndex(event.jdevice.which),
                                 event.jdevice.which
                             );
-                            //spdlog::debug("Mapping: {}", SDL_GameControllerMappingForIndex(event.jdevice.which));
                         }
                         if (event.jdevice.which == config.gamepad_index)
                             gamepad.connect(event.jdevice.which, true);

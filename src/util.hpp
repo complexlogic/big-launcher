@@ -9,6 +9,7 @@
 
 typedef struct {
     Gamepad &gamepad;
+    HotkeyList &hotkey_list;
 } ConfigInfo;
 
 class Config {
@@ -34,7 +35,7 @@ public:
 
 
     Config();
-    void parse(const std::string &file, Gamepad &gamepad);
+    void parse(const std::string &file, Gamepad &gamepad, HotkeyList &hotkey_list);
     void add_int(const char *value, int &out);
     void add_string(const char *value, std::string &out);
     void add_bool(const char *value, bool &out);
