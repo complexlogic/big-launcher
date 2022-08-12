@@ -730,6 +730,12 @@ int main(int argc, char *argv[])
                         }
                     }
                     break;
+                case SDL_MOUSEBUTTONDOWN:
+                    if (config.mouse_select && event.button.button == SDL_BUTTON_LEFT) {
+                        //ticks.last_input = ticks.main;
+                        layout.select();
+                    }
+                    break;
             }
         }
 

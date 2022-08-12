@@ -616,7 +616,6 @@ void MenuHighlight::render_surface(int x, int y, int w, int h, int t, int shadow
     int rx_outter = (int) std::round((float) w * MENU_HIGHLIGHT_RX);
     int rx_inner = rx_outter / 2;
     
-
     // Render highlight
     SDL_Color mask_color = config.menu_highlight_color;
     mask_color.b & 0x01 ? mask_color.b-- : mask_color.b++;
@@ -641,7 +640,6 @@ void MenuHighlight::render_surface(int x, int y, int w, int h, int t, int shadow
         {0, max_y_offset / 2, max_blur / 2.0f, alpha},
         {0, max_y_offset,     max_blur,        alpha}
     };
-
 
     surface = create_shadow(highlight, box_shadows, shadow_offset);
     SDL_Rect blit_rect = {shadow_offset, shadow_offset, highlight->w, highlight->h};
