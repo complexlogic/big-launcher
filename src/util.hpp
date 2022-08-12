@@ -17,6 +17,7 @@ public:
     SDL_Color sidebar_highlight_color;
     SDL_Color sidebar_text_color;
     SDL_Color sidebar_text_color_highlighted;
+    SDL_Color menu_highlight_color;
 
     std::string background_image_path;
 

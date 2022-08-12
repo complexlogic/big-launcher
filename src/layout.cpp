@@ -618,11 +618,21 @@ void MenuHighlight::render_surface(int x, int y, int w, int h, int t, int shadow
     
 
     // Render highlight
-    std::string format = format_menu_highlight(w, h, w_inner, h_inner, t, rx_outter, rx_inner);
+    SDL_Color mask_color = config.menu_highlight_color;
+    mask_color.b & 0x01 ? mask_color.b-- : mask_color.b++;
+    std::string format = format_menu_highlight(w, 
+                             h, 
+                             config.menu_highlight_color, 
+                             mask_color, 
+                             w_inner, 
+                             h_inner, 
+                             t, 
+                             rx_outter, 
+                             rx_inner
+                         );
     SDL_Surface *highlight = rasterize_svg(format, -1, -1);
 
     // Render shadow
-    #define SHADOW_ALPHA_HIGHLIGHT 0.6f
     constexpr Uint8 alpha = (Uint8) std::round((float) 0xFF * SHADOW_ALPHA_HIGHLIGHT);
     float f_h = (float) h;
     float max_blur = SHADOW_BLUR_SLOPE*f_h+ SHADOW_BLUR_INTERCEPT;
@@ -637,7 +647,7 @@ void MenuHighlight::render_surface(int x, int y, int w, int h, int t, int shadow
     SDL_Rect blit_rect = {shadow_offset, shadow_offset, highlight->w, highlight->h};
     SDL_BlitSurface(highlight, NULL, surface, &blit_rect);
     free_surface(highlight);
-    Uint32 key = SDL_MapRGBA(surface->format, 0x00, 0x00, 0x01, 0xFF);
+    Uint32 key = SDL_MapRGBA(surface->format, mask_color.r, mask_color.g, mask_color.b, 0xFF);
     SDL_SetColorKey(surface, SDL_TRUE, key);
     rect = {x, y, surface->w, surface->h};
 }

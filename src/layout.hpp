@@ -39,14 +39,15 @@
 #define HIGHLIGHT_THICKNESS 0.5f
 #define HIGHLIGHT_INNER_SPACING 0.25f
 #define MENU_HIGHLIGHT_RX 0.02f
+#define SHADOW_ALPHA_HIGHLIGHT 0.6f
 
 #define set_texture_color(texture, color) SDL_SetTextureColorMod(texture, color.r, color.g, color.b)
 
 #define HIGHLIGHT_FORMAT "<svg viewBox=\"0 0 {} {}\"><rect x=\"0\" width=\"{}\" height=\"{}\" rx=\"{}\" fill=\"#{:02x}{:02x}{:02x}\"/></svg>"
 #define format_highlight(w, h, rx, color) fmt::format(HIGHLIGHT_FORMAT, w, h, w, h, rx, color.r, color.g, color.b)
 
-#define MENU_HIGHLIGHT_FORMAT "<svg viewBox=\"0 0 {} {}\"><rect width=\"100%\" height=\"100%\" rx=\"{}\" fill=\"#ffffff\" /><rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"{}\"  fill=\"#000001\"/></svg>"
-#define format_menu_highlight(w, h, w_inner, h_inner, t, rx_outter, rx_inner) fmt::format(MENU_HIGHLIGHT_FORMAT, w, h, rx_outter, t, t, w_inner, h_inner, rx_inner)
+#define MENU_HIGHLIGHT_FORMAT "<svg viewBox=\"0 0 {} {}\"><rect width=\"100%\" height=\"100%\" rx=\"{}\" fill=\"#{:02x}{:02x}{:02x}\" /><rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"{}\"  fill=\"#{:02x}{:02x}{:02x}\"/></svg>"
+#define format_menu_highlight(w, h, color, mask_color, w_inner, h_inner, t, rx_outter, rx_inner) fmt::format(MENU_HIGHLIGHT_FORMAT, w, h, rx_outter, color.r, color.g, color.b, t, t, w_inner, h_inner, rx_inner, mask_color.r, mask_color.g, mask_color.b)
 
 typedef enum  {
     MENU,

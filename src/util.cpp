@@ -20,9 +20,10 @@ extern Config config;
 Config::Config()
 {
     debug = false;
-    sidebar_highlight_color = {0x00, 0x00, 0x00, 0xFF};
+    sidebar_highlight_color = {0x00, 0x00, 0xFF, 0xFF};
     sidebar_text_color = {0xFF, 0xFF, 0xFF, 0xFF};
     sidebar_text_color_highlighted = {0xFF, 0xFF, 0xFF, 0xFF};
+    menu_highlight_color = {0xFF, 0xFF, 0xFF, 0xFF};
     mouse_select = false;
     sound_enabled = false;
     sound_volume = MAX_VOLUME;
@@ -91,15 +92,19 @@ static int handler(void* user, const char* section, const char* name, const char
         if (MATCH(name, "MouseSelect")) {
             config.add_bool(value, config.mouse_select);
         }
-        else if (MATCH(name, "HighlightColor")) {
+        else if (MATCH(name, "SidebarHighlightColor")) {
             hex_to_color(value, config.sidebar_highlight_color);
         }
-        else if (MATCH(name, "TextColor")) {
+        else if (MATCH(name, "SidebarTextColor")) {
             hex_to_color(value, config.sidebar_text_color);
         }
-        else if (MATCH(name, "TextSelectedColor")) {
+        else if (MATCH(name, "SidebarTextSelectedColor")) {
             hex_to_color(value, config.sidebar_text_color_highlighted);
         }
+        else if (MATCH(name, "MenuHighlightColor")) {
+            hex_to_color(value, config.menu_highlight_color);
+        }
+
         else if (MATCH(name, "BackgroundImage")) {
             config.add_path(value, config.background_image_path);
         }

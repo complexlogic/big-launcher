@@ -4,9 +4,10 @@ BackgroundColor2=
 #BackgroundImage=
 
 
-HighlightColor=#F2F2F2
-TextColor=F2F2F2
-TextSelectedColor=#01016e
+SidebarHighlightColor=#F2F2F2
+SidebarTextColor=#F2F2F2
+SidebarTextSelectedColor=#01016e
+MenuHighlightColor=#FFFFFF
 
 MouseSelect=false
 StartupCmd=
