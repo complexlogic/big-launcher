@@ -5,6 +5,8 @@
 #include <vector>
 #include <set>
 #include <SDL.h>
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
 #include "image.hpp"
 #define SIDEBAR_SHIFT_TIME 200.0f
 #define ROW_SHIFT_TIME 120.0f
@@ -97,14 +99,12 @@ class Entry {
         void add_card(const char *path);
         void add_card(SDL_Color &background_color, const char *path);
         void add_card(const char *background_path, const char *icon_path);
-
-
 };
 
 
 class PressedEntry {
     public:
-        Entry *entry;
+        Entry &entry;
         SDL_Rect original_rect;
         int total;
         Uint32 ticks;
@@ -113,11 +113,10 @@ class PressedEntry {
         Direction direction;
         float aspect_ratio;
 
-        PressedEntry(Entry *entry);
+        PressedEntry(Entry &entry);
         bool update();
 
 };
-
 
 
 class SidebarEntry {
@@ -136,7 +135,7 @@ class Menu : public SidebarEntry{
         
 
     public:
-        std::vector<Entry*> entry_list;
+        std::vector<Entry> entry_list;
         int y_offset;
         int row;
         int column;
@@ -145,10 +144,11 @@ class Menu : public SidebarEntry{
         int shift_count;
         int height;
 
-        std::vector<Entry*>::iterator current_entry;
+        std::vector<Entry>::iterator current_entry;
         Menu(const char *title);
         //~Menu();
-        void add_entry(Entry *entry);
+        int parse(xmlNodePtr node);
+        void add_entry(xmlNodePtr node);
         size_t num_entries();
         void render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, int h, int x_start, int y_start, int spacing, int screen_height);
         void render_card_textures(SDL_Renderer *renderer, SDL_Texture *card_shadow_texture, int shadow_offset, int card_w, int card_h);

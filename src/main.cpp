@@ -94,6 +94,7 @@ void Display::init()
 
 void Display::create_window()
 {
+    spdlog::debug("Creating window...");
     window = SDL_CreateWindow(PROJECT_NAME, 
                  SDL_WINDOWPOS_UNDEFINED,
                  SDL_WINDOWPOS_UNDEFINED,
@@ -106,18 +107,21 @@ void Display::create_window()
         spdlog::critical("SDL Error: {}", SDL_GetError());
         quit(EXIT_FAILURE);
     }
+    spdlog::debug("Sucessfully created window");
     SDL_ShowCursor(SDL_DISABLE);
 
     // Create HW accelerated renderer
+    spdlog::debug("Creating renderer...");
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (renderer == NULL) {
         spdlog::critical("Could not create renderer");
         spdlog::critical("SDL Error: {}", SDL_GetError());
         quit(EXIT_FAILURE);
     }
-    SDL_GetRendererInfo(renderer, &ri);
+    spdlog::debug("Sucessfully created renderer");
 
     // Make sure the renderer supports the required format
+    SDL_GetRendererInfo(renderer, &ri);
     auto end = std::cbegin(ri.texture_formats) + ri.num_texture_formats;
     auto it = std::find(std::cbegin(ri.texture_formats), end, SDL_PIXELFORMAT_ARGB8888);
     if (it == end) {
@@ -139,7 +143,6 @@ void Display::create_window()
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-    spdlog::debug("Successfully created window and renderer");
     if (config.debug)
         this->print_debug_info();
 }

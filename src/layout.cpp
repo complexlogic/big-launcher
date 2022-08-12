@@ -19,10 +19,9 @@
 #include "util.hpp"
 #include "platform/platform.hpp"
 
+extern "C" void libxml2_error_handler(void *ctx, const char *msg, ...);
 extern Config config;
 extern Sound sound;
-
-extern "C" void libxml2_error_handler(void *ctx, const char *msg, ...);
 
 
 // Wrapper for libxml2 error messages
@@ -66,86 +65,6 @@ Entry::~Entry()
 
 }
 
-Entry *parse_entry(xmlChar *entry_title, xmlNodePtr node)
-{
-    Entry *entry = NULL;
-    xmlNodePtr cmd_node = NULL;
-    xmlNodePtr card_node = NULL;
-
-    // Get location of command and card elements
-    for (node = node->xmlChildrenNode; node != NULL; node = node->next) {
-        if (!xmlStrcmp(node->name, (const xmlChar*) "command") && cmd_node == NULL) {
-            cmd_node = node;
-        }
-        else if (!xmlStrcmp(node->name, (const xmlChar*) "card") && card_node == NULL) {
-            card_node = node;
-        }
-    }
-    if (cmd_node == NULL || card_node == NULL) {
-        return NULL;
-    }
-
-    // Parse command
-    xmlChar *command = xmlNodeGetContent(cmd_node);
-    if (command == NULL)
-        return entry;
-    entry = new Entry((const char*) entry_title, (const char*) command);
-    xmlFree(command);
-
-    // Parse card
-    xmlChar *content = xmlNodeGetContent(card_node);
-    unsigned long child_count = xmlChildElementCount(card_node);
-
-    // Custom card
-    if (content != NULL && !child_count) {
-        entry->add_card((const char*) content);
-    }
-
-    // Generated card
-    else if (child_count) {
-        xmlNodePtr icon_node = NULL;
-        xmlNodePtr background_node = NULL;
-
-        // Get icon and background elements
-        for (xmlNodePtr node = card_node->xmlChildrenNode; node != NULL; node = node->next) {
-            if (!xmlStrcmp(node->name, (const xmlChar*) "icon")) {
-                icon_node = node;
-            }
-            else if (!xmlStrcmp(node->name, (const xmlChar*) "background")) {
-                background_node = node;
-            }
-        }
-
-        if (icon_node == NULL || background_node == NULL || 
-        xmlChildElementCount(icon_node) || xmlChildElementCount(background_node)) {
-            delete entry;
-            return NULL;
-        }
-
-        xmlChar *icon = xmlNodeGetContent(icon_node);
-        xmlChar *background = xmlNodeGetContent(background_node);
-        if (icon == NULL || background == NULL) {
-            xmlFree(icon);
-            xmlFree(background);
-            delete entry;
-            return NULL;
-        }
-
-        SDL_Color color;
-        bool is_color = hex_to_color((char*) background, color);
-        if (is_color) {
-            entry->add_card(color, (const char*) icon);
-        }
-        else {
-            entry->add_card((const char*) background, (const char*) icon);
-        }
-    }
-    else {
-        delete entry;
-        entry = NULL;
-    }
-    return entry;
-}
 
 // Custom card
 void Entry::add_card(const char *path)
@@ -170,38 +89,6 @@ void Entry::add_card(const char *background_path, const char *icon_path)
     this->icon_path = icon_path;
 }
 
-Menu *parse_menu(const char *menu_title,  xmlNodePtr node)
-{
-    xmlChar *entry_title;
-    Entry *entry = NULL;
-    Menu *menu = new Menu((const char*) menu_title);
-    for (node = node->xmlChildrenNode; node != NULL; node = node->next) {
-        if (!xmlStrcmp(node->name, (const xmlChar*) "entry")) {
-            entry_title = xmlGetProp(node, (const xmlChar*) "title");
-            if (entry_title != NULL) {
-                entry = parse_entry(entry_title, node);
-                if (entry != NULL)
-                    menu->add_entry(entry);
-                xmlFree(entry_title);
-            }
-        }
-    }
-    int num_entries = menu->num_entries();
-    if (!num_entries) {
-        delete menu;
-        menu = NULL;
-    }
-    else {
-        menu->current_entry = menu->entry_list.begin();
-        menu->max_columns = (num_entries < COLUMNS) ? num_entries : COLUMNS;
-        menu->total_rows = num_entries / menu->max_columns;
-        if (num_entries % menu->max_columns)
-            menu->total_rows++;
-
-    }
-
-    return menu;
-}
 
 Menu::Menu(const char *title)
 {
@@ -214,10 +101,127 @@ Menu::Menu(const char *title)
     shift_count = 0;
 }
 
-void Menu::add_entry(Entry *entry)
+int Menu::parse(xmlNodePtr node)
 {
-    if (entry != NULL) {
-        entry_list.push_back(entry);
+    for (node = node->xmlChildrenNode; node != NULL; node = node->next) {
+        if (!xmlStrcmp(node->name, (const xmlChar*) "entry")) {
+            this->add_entry(node);
+        }
+    }
+    int num_entries = entry_list.size();
+    if (!num_entries)
+        return 1;
+
+    current_entry = entry_list.begin();
+    max_columns = (num_entries < COLUMNS) ? num_entries : COLUMNS;
+    total_rows = num_entries / max_columns;
+    if (num_entries % max_columns)
+        total_rows++;
+
+    return 0;
+}
+
+void Menu::add_entry(xmlNodePtr node)
+{
+    xmlChar *entry_title = xmlGetProp(node, (const xmlChar*) "title");
+    if (entry_title == NULL) {
+        spdlog::error("'menu' element in line {} is missing 'title' attribute", node->line);
+        return;
+    }
+    
+    xmlNodePtr cmd_node = NULL;
+    xmlNodePtr card_node = NULL;
+
+    // Get location of command and card elements
+    for (xmlNodePtr current_node = node->xmlChildrenNode; current_node != NULL; current_node = current_node->next) {
+        if (!xmlStrcmp(current_node->name, (const xmlChar*) "command") && cmd_node == NULL) {
+            cmd_node = current_node;
+        }
+        else if (!xmlStrcmp(current_node->name, (const xmlChar*) "card") && card_node == NULL) {
+            card_node = current_node;
+        }
+    }
+    if (cmd_node == NULL) {
+        spdlog::error("Menu '{}': Entry '{}' is missing 'command' element", title, entry_title);
+        xmlFree(entry_title);
+        return;
+    }
+    if (card_node == NULL) {
+        spdlog::error("Menu '{}': Entry '{}' is missing 'card' element", title, entry_title);
+        xmlFree(entry_title);
+        return;
+    }
+
+    // Parse command
+    xmlChar *command = xmlNodeGetContent(cmd_node);
+    if (command == NULL) {
+        spdlog::error("Menu '{}', Entry '{}': element 'command' has no content", title, entry_title);
+        xmlFree(entry_title);
+        return;
+    }
+
+    entry_list.push_back(Entry((const char*) entry_title, (const char*) command));
+    Entry &entry = entry_list.back();
+    xmlFree(entry_title);
+    xmlFree(command);
+
+    // Parse card
+    xmlChar *content = xmlNodeGetContent(card_node);
+    unsigned long child_count = xmlChildElementCount(card_node);
+
+    // Custom card
+    if (content != NULL && !child_count) {
+        entry.add_card((const char*) content);
+    }
+
+    // Generated card
+    else if (child_count) {
+        xmlNodePtr icon_node = NULL;
+        xmlNodePtr background_node = NULL;
+
+        // Get icon and background elements
+        for (card_node = card_node->xmlChildrenNode; card_node != NULL; card_node = card_node->next) {
+            if (!xmlStrcmp(card_node->name, (const xmlChar*) "icon")) {
+                icon_node = card_node;
+            }
+            else if (!xmlStrcmp(card_node->name, (const xmlChar*) "background")) {
+                background_node = card_node;
+            }
+        }
+
+        if (icon_node == NULL || xmlChildElementCount(icon_node)) {
+            spdlog::error("Menu '{}', Entry '{}': generated card is missing 'icon' element",title, entry.title);
+            entry_list.pop_back();
+            return;
+        }
+        if (background_node != NULL && xmlChildElementCount(background_node))
+            background_node = NULL;
+
+        xmlChar *icon = xmlNodeGetContent(icon_node);
+        xmlChar *background = (background_node == NULL) ? NULL : xmlNodeGetContent(background_node);
+        if (icon == NULL) {
+            spdlog::error("Menu '{}', Entry '{}': 'icon' element in generated card has no content", title, entry.title);
+            xmlFree(icon);
+            xmlFree(background);
+            entry_list.pop_back();
+            return;
+        }
+
+        SDL_Color color;
+        bool is_color;
+        if (background == NULL) {
+            color = {0xFF, 0xFF, 0xFF, 0xFF};
+            is_color = true;
+        }
+        else {
+            is_color = hex_to_color((char*) background, color);
+        }
+        if (is_color) {
+            entry.add_card(color, (const char*) icon);
+        }
+        else {
+            entry.add_card((const char*) background, (const char*) icon);
+        }
     }
 }
 
@@ -237,22 +241,22 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
     SDL_Surface *bg;
     SDL_Surface *icon;
 
-    for (Entry *entry : entry_list) {
+    for (Entry &entry : entry_list) {
         bg = NULL;
 
-        if (entry->card_type == CUSTOM) {
-            entry->surface = (entry->path.ends_with(".svg")) 
-                                 ? rasterize_svg_from_file(entry->path, w, h)
-                                 : load_surface(entry->path);
+        if (entry.card_type == CUSTOM) {
+            entry.surface = (entry.path.ends_with(".svg")) 
+                                 ? rasterize_svg_from_file(entry.path, w, h)
+                                 : load_surface(entry.path);
         }
 
         // Generated card
         else {
             icon = NULL;
-            if (!entry->path.empty()) {
-                bg = (entry->path.ends_with(".svg")) 
-                        ? rasterize_svg_from_file(entry->path, w, h)
-                        : load_surface(entry->path);
+            if (!entry.path.empty()) {
+                bg = (entry.path.ends_with(".svg")) 
+                        ? rasterize_svg_from_file(entry.path, w, h)
+                        : load_surface(entry.path);
             }
 
             // Color background
@@ -264,26 +268,26 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
                           SDL_PIXELFORMAT_ARGB8888
                       );
                 Uint32 color = SDL_MapRGBA(bg->format, 
-                                   entry->background_color.r, 
-                                   entry->background_color.g, 
-                                   entry->background_color.b, 
-                                   entry->background_color.a
+                                   entry.background_color.r, 
+                                   entry.background_color.g, 
+                                   entry.background_color.b, 
+                                   entry.background_color.a
                                );
                 SDL_FillRect(bg, NULL, color);
             }
 
             // Calculate aspect ratio, load surface if non-SVG
             float f_w, f_h, aspect_ratio;
-            bool svg = entry->icon_path.ends_with(".svg");
+            bool svg = entry.icon_path.ends_with(".svg");
             NSVGimage *image = NULL;
             if (svg) {
-                image = nsvgParseFromFile((char*) entry->icon_path.c_str(), "px", 96.0f);
+                image = nsvgParseFromFile((char*) entry.icon_path.c_str(), "px", 96.0f);
                 f_w = image->width;
                 f_h = image->height;
                 aspect_ratio = image->width / image->height;
             }
             else {
-                icon = load_surface(entry->icon_path);
+                icon = load_surface(entry.icon_path);
                 if (icon != NULL) {
                     f_w = (float) icon->w;
                     f_h = (float) icon->h;
@@ -298,7 +302,7 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
                 if (aspect_ratio >  CARD_ASPECT_RATIO) {
                     target_w = (float) w  * (1.0f - 2.0f * CARD_ICON_MARGIN);
                     target_h = ((target_w / f_w)) * f_h;
-                    entry->icon_rect =  {
+                    entry.icon_rect =  {
                         (int) std::round(CARD_ICON_MARGIN * (float) w) + shadow_offset,
                         (h - (int) target_h) / 2 + shadow_offset,
                         (int) std::round(target_w),
@@ -308,7 +312,7 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
                 else {
                     target_h = (float) h  * (1.0f - 2.0f * CARD_ICON_MARGIN);
                     target_w = (target_h / f_h) * f_w;
-                    entry->icon_rect = {
+                    entry.icon_rect = {
                         (w - (int) target_w) / 2 + shadow_offset,
                         (int) std::round(CARD_ICON_MARGIN * (float) h) + shadow_offset,
                         (int) std::round(target_w),
@@ -317,17 +321,17 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
                 }
                 if (svg) {
                     icon = rasterize_svg_image(image, 
-                               entry->icon_rect.w, 
-                               entry->icon_rect.h
+                               entry.icon_rect.w, 
+                               entry.icon_rect.h
                            );
                 }
-                entry->icon_surface = icon;
+                entry.icon_surface = icon;
             }
-            entry->surface = bg;
+            entry.surface = bg;
         }
 
         // Assign dimensions
-        entry->rect = {
+        entry.rect = {
             x,
             y,
             w + 2*shadow_offset,
@@ -350,32 +354,32 @@ void Menu::render_card_textures(SDL_Renderer *renderer, SDL_Texture *card_shadow
     SDL_Texture *texture = NULL;
     SDL_Rect rect = {shadow_offset, shadow_offset, card_w, card_h};
     
-    for (Entry *entry : entry_list) {
-        entry->texture = SDL_CreateTexture(renderer,
+    for (Entry &entry : entry_list) {
+        entry.texture = SDL_CreateTexture(renderer,
                              SDL_PIXELFORMAT_ARGB8888,
                              SDL_TEXTUREACCESS_TARGET,
-                             entry->rect.w,
-                             entry->rect.h
+                             entry.rect.w,
+                             entry.rect.h
                          );
-        SDL_SetTextureBlendMode(entry->texture, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderTarget(renderer, entry->texture);
+        SDL_SetTextureBlendMode(entry.texture, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderTarget(renderer, entry.texture);
         
         // Copy the shadow
         SDL_RenderCopy(renderer, card_shadow_texture, NULL, NULL);
 
         // Copy the background
-        texture = SDL_CreateTextureFromSurface(renderer, entry->surface);
+        texture = SDL_CreateTextureFromSurface(renderer, entry.surface);
         SDL_RenderCopy(renderer, texture, NULL, &rect);
-        free_surface(entry->surface);
-        entry->surface = NULL;
+        free_surface(entry.surface);
+        entry.surface = NULL;
         SDL_DestroyTexture(texture);
         
         // Copy the icon
-        if (entry->card_type == GENERATED) {
-            texture = SDL_CreateTextureFromSurface(renderer, entry->icon_surface);
-            SDL_RenderCopy(renderer, texture, NULL, &entry->icon_rect);
-            free_surface(entry->icon_surface);
-            entry->icon_surface = NULL;
+        if (entry.card_type == GENERATED) {
+            texture = SDL_CreateTextureFromSurface(renderer, entry.icon_surface);
+            SDL_RenderCopy(renderer, texture, NULL, &entry.icon_rect);
+            free_surface(entry.icon_surface);
+            entry.icon_surface = NULL;
             SDL_DestroyTexture(texture);           
         }
     }
@@ -386,24 +390,24 @@ void Menu::draw_entries(SDL_Renderer *renderer, int y_min, int y_max)
     SDL_Rect src_rect;
     SDL_Rect dst_rect;
     int y, h;
-    for (const Entry *entry : entry_list) {
-        y = entry->rect.y + y_offset;
-        h = entry->rect.h;
+    for (const Entry &entry : entry_list) {
+        y = entry.rect.y + y_offset;
+        h = entry.rect.h;
         if (y < y_min) {
             if ((y + h) > y_min) {
                 src_rect = {
                     0, // x
                     y_min - y, // y
-                    entry->rect.w, // w
-                    entry->rect.h - (y_min - y) // h
+                    entry.rect.w, // w
+                    entry.rect.h - (y_min - y) // h
                 };
                 dst_rect = {
-                    entry->rect.x, // x
+                    entry.rect.x, // x
                     y_min, // y
-                    entry->rect.w, // w
+                    entry.rect.w, // w
                     src_rect.h // h
                 };
-                SDL_RenderCopy(renderer, entry->texture, &src_rect, &dst_rect);
+                SDL_RenderCopy(renderer, entry.texture, &src_rect, &dst_rect);
             }
 
         }
@@ -412,30 +416,30 @@ void Menu::draw_entries(SDL_Renderer *renderer, int y_min, int y_max)
                 src_rect = {
                     0, // x
                     0, // y
-                    entry->rect.w, // w
-                    entry->rect.h - ((y + h) - y_max) // h
+                    entry.rect.w, // w
+                    entry.rect.h - ((y + h) - y_max) // h
                 };
                 dst_rect = {
-                    entry->rect.x, // x
+                    entry.rect.x, // x
                     y, // y
-                    entry->rect.w, // w
+                    entry.rect.w, // w
                     src_rect.h // h
                 };
-                SDL_RenderCopy(renderer, entry->texture, &src_rect, &dst_rect);
+                SDL_RenderCopy(renderer, entry.texture, &src_rect, &dst_rect);
             }
         }
         else {
             if (y_offset) {
                 dst_rect = {
-                    entry->rect.x, // x
-                    entry->rect.y + y_offset, // y
-                    entry->rect.w, // w
-                    entry->rect.h // h
+                    entry.rect.x, // x
+                    entry.rect.y + y_offset, // y
+                    entry.rect.w, // w
+                    entry.rect.h // h
                 };
-                SDL_RenderCopy(renderer, entry->texture, NULL, &dst_rect);
+                SDL_RenderCopy(renderer, entry.texture, NULL, &dst_rect);
             }
             else {
-                SDL_RenderCopy(renderer, entry->texture, NULL, &entry->rect);
+                SDL_RenderCopy(renderer, entry.texture, NULL, &entry.rect);
             }
         }
     }
@@ -443,10 +447,10 @@ void Menu::draw_entries(SDL_Renderer *renderer, int y_min, int y_max)
 
 void Menu::print_entries()
 {
-    for (Entry *entry : entry_list) {
-        fmt::print("Entry {}:\n", entry - entry_list[0]);
-        fmt::print("Title: {}\n", (char*) entry->title.c_str());
-        fmt::print("Command: {}\n", (char*) entry->command.c_str());
+    for (Entry &entry : entry_list) {
+        fmt::print("Entry {}:\n", &entry - &entry_list[0]);
+        fmt::print("Title: {}\n", (char*) entry.title.c_str());
+        fmt::print("Command: {}\n", (char*) entry.command.c_str());
     }
 }
 
@@ -479,6 +483,7 @@ void Layout::parse(const std::string &file)
     xmlNodePtr node;
     Menu *menu = NULL;
     Command *command = NULL;
+    int error;
 
     xmlSetGenericErrorFunc(NULL, libxml2_error_handler);
     doc = xmlParseFile(file.c_str());
@@ -504,12 +509,14 @@ void Layout::parse(const std::string &file)
         // Menu detected
         if (!xmlStrcmp(node->name, (const xmlChar*) "menu")) {
             xmlChar *title = xmlGetProp(node, (const xmlChar*) "title");
-            if (title != NULL) {
-                menu = parse_menu((const char*) title, node);
+            if (title == NULL) {
+                spdlog::error("'menu' element in line {} has no 'title' attribute", node->line);
+            }
+            else {
+                menu = new Menu((const char*) title);
                 xmlFree(title);
-                if (menu != NULL) {
-                    list.push_back(menu);
-                }
+                error = menu->parse(node);
+                error ? delete menu : list.push_back(menu);
             }
         }
 
@@ -520,8 +527,8 @@ void Layout::parse(const std::string &file)
                 xmlChar *cmd = xmlNodeGetContent(node);
                 if (cmd != NULL && !xmlChildElementCount(node)) {
                     command = new Command((const char*) title, (const char*) cmd);
-                    list.push_back(command);
                     xmlFree(cmd);
+                    list.push_back(command);
                 }
                 xmlFree(title);
             }
@@ -658,10 +665,9 @@ void MenuHighlight::render_texture(SDL_Renderer *renderer)
 }
 
 
-PressedEntry::PressedEntry(Entry *entry)
+PressedEntry::PressedEntry(Entry &entry) : entry(entry)
 {
-    this->entry = entry;
-    original_rect = entry->rect;
+    original_rect = entry.rect;
     total = (int) std::round((float) original_rect.w * ENTRY_SHRINK_DISTANCE);
     direction = DIRECTION_RIGHT;
     aspect_ratio = (float) original_rect.w / (float) original_rect.h;
@@ -688,13 +694,13 @@ bool PressedEntry::update()
         if (current <= 0) {
             current = 0;
             ret = true;
-            execute_command(entry->command);
+            execute_command(entry.command);
         }
 
     }
     int w = original_rect.w - 2 * current;
     int h = (int) std::round((float) w / aspect_ratio);
-    entry->rect = {
+    entry.rect = {
         original_rect.x + current,
         original_rect.y + (int) std::round((float) current / aspect_ratio),
         w,
@@ -1065,8 +1071,8 @@ void Layout::select()
         }
     }
     else if (selection_mode == SELECTION_MENU && pressed_entry == NULL) {
-        Entry *entry = (*(current_menu->current_entry));
-        spdlog::debug("User selected entry '{}'", entry->title);
+        Entry &entry = *(current_menu->current_entry);
+        spdlog::debug("User selected entry '{}'", entry.title);
         pressed_entry = new PressedEntry(entry);
         sound.play_select();
     }
