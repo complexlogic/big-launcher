@@ -114,7 +114,6 @@ class HotkeyList {
         void add(const char *value);
         std::vector<Hotkey>::iterator begin(void);
         std::vector<Hotkey>::iterator end(void);
-        size_t size(void);
 };
 
 typedef struct {

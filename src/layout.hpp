@@ -36,6 +36,7 @@
 #define CARD_WIDTH CARD_RIGHT_MARGIN - CARD_LEFT_MARGIN
 #define CARD_ASPECT_RATIO 1.33333333F
 #define CARD_ICON_MARGIN 0.12F
+#define MAX_CARD_ICON_MARGIN 0.2f
 
 // Menu highlight geometry
 #define HIGHLIGHT_THICKNESS 0.5f
@@ -92,6 +93,7 @@ class Entry {
         SDL_Rect rect;
         SDL_Surface *icon_surface;
         SDL_Rect icon_rect;
+        float icon_margin;
         SDL_Texture *texture;
 
         Entry(const char *title, const char *command);
@@ -99,6 +101,7 @@ class Entry {
         void add_card(const char *path);
         void add_card(SDL_Color &background_color, const char *path);
         void add_card(const char *background_path, const char *icon_path);
+        void add_margin(const char *value);
 };
 
 
@@ -115,7 +118,6 @@ class PressedEntry {
 
         PressedEntry(Entry &entry);
         bool update();
-
 };
 
 

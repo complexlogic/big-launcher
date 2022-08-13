@@ -66,8 +66,8 @@
 
     <!-- Sidebar commands here -->
     <command title="Sleep">:sleep</command>
-    <command title="Restart">:sleep</command>
-    <command title="Shutdown">:sleep</command>
+    <command title="Restart">:restart</command>
+    <command title="Shutdown">:shutdown</command>
 
 </layout>
  

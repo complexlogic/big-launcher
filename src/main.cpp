@@ -411,11 +411,6 @@ inline std::vector<Hotkey>::iterator HotkeyList::end()
     return list.end();
 }
 
-inline size_t HotkeyList::size()
-{
-    return list.size();
-}
-
 static void cleanup()
 {
     display.close();

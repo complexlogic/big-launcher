@@ -57,6 +57,7 @@ Entry::Entry(const char *title, const char *command)
     surface = NULL;
     texture = NULL;
     icon_surface = NULL;
+    icon_margin = CARD_ICON_MARGIN;
     background_color = {0xFF, 0xFF, 0xFF, 0xFF};
 }
 
@@ -87,6 +88,18 @@ void Entry::add_card(const char *background_path, const char *icon_path)
     card_type = GENERATED;
     this->path = background_path;
     this->icon_path = icon_path;
+}
+
+void Entry::add_margin(const char *value)
+{
+    std::string_view string = value;
+    if (string.back() != '%')
+        return;
+    
+    float percent = atof(std::string(string, 0, string.size() - 1).c_str()) / 100.f;
+    if ((percent == 0.f && string != "0%") || percent < 0.f || percent > MAX_CARD_ICON_MARGIN)
+        return;
+    icon_margin = percent;
 }
 
 
@@ -197,6 +210,13 @@ void Menu::add_entry(xmlNodePtr node)
         if (background_node != NULL && xmlChildElementCount(background_node))
             background_node = NULL;
 
+        // Get custom margin
+        xmlChar *margin = xmlGetProp(icon_node, (const xmlChar*) "margin");
+        if (margin != NULL) {
+            entry.add_margin((const char*) margin);
+            xmlFree(margin);
+        }
+
         xmlChar *icon = xmlNodeGetContent(icon_node);
         xmlChar *background = (background_node == NULL) ? NULL : xmlNodeGetContent(background_node);
         if (icon == NULL) {
@@ -225,7 +245,7 @@ void Menu::add_entry(xmlNodePtr node)
     }
 }
 
-size_t Menu::num_entries()
+inline size_t Menu::num_entries()
 {
     return entry_list.size();
 }
@@ -284,14 +304,14 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
                 image = nsvgParseFromFile((char*) entry.icon_path.c_str(), "px", 96.0f);
                 f_w = image->width;
                 f_h = image->height;
-                aspect_ratio = image->width / image->height;
+                aspect_ratio = f_w / f_h;
             }
             else {
                 icon = load_surface(entry.icon_path);
                 if (icon != NULL) {
                     f_w = (float) icon->w;
                     f_h = (float) icon->h;
-                    aspect_ratio = (float) icon->w / (float) icon->h;
+                    aspect_ratio = f_w / f_h;
                 }
             }
 
@@ -300,21 +320,21 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
 
                 // Calculate icon dimensions
                 if (aspect_ratio >  CARD_ASPECT_RATIO) {
-                    target_w = (float) w  * (1.0f - 2.0f * CARD_ICON_MARGIN);
+                    target_w = (float) w  * (1.0f - 2.0f * entry.icon_margin);
                     target_h = ((target_w / f_w)) * f_h;
                     entry.icon_rect =  {
-                        (int) std::round(CARD_ICON_MARGIN * (float) w) + shadow_offset,
+                        (int) std::round(entry.icon_margin * (float) w) + shadow_offset,
                         (h - (int) target_h) / 2 + shadow_offset,
                         (int) std::round(target_w),
                         (int) std::round(target_h)
                     };
                 }
                 else {
-                    target_h = (float) h  * (1.0f - 2.0f * CARD_ICON_MARGIN);
+                    target_h = (float) h  * (1.0f - 2.0f * entry.icon_margin);
                     target_w = (target_h / f_h) * f_w;
                     entry.icon_rect = {
                         (w - (int) target_w) / 2 + shadow_offset,
-                        (int) std::round(CARD_ICON_MARGIN * (float) h) + shadow_offset,
+                        (int) std::round(entry.icon_margin * (float) h) + shadow_offset,
                         (int) std::round(target_w),
                         (int) std::round(target_h)
                     };
@@ -729,7 +749,6 @@ void Layout::load_surfaces(int screen_width, int screen_height)
                              : load_surface(config.background_image_path);
     }
 
-
     // Sidebar highlight geometry calculations and rendering
     float f_sidebar_width = std::round(f_screen_width * SIDEBAR_HIGHLIGHT_WIDTH);
     int sidebar_width = (int) f_sidebar_width;
@@ -1013,6 +1032,8 @@ void Layout::move_left()
                 current_menu->row = 0;
                 menu_highlight.rect.y = highlight_y0;
                 current_menu->current_entry = current_menu->entry_list.begin();
+                if (sound.connected)
+                    sound.play_click();
                 
                 // Reset menu shift
                 if (current_menu->shift_count) {
@@ -1025,12 +1046,11 @@ void Layout::move_left()
         else {
             // Move highlight left
             this->add_shift(SHIFT_HIGHLIGHT, DIRECTION_LEFT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
-
             current_menu->column--;
             current_menu->current_entry--;
+            if (sound.connected)
+                sound.play_click();
         }
-        if (sound.connected)
-            sound.play_click();
     }
 }
 
