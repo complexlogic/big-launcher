@@ -23,9 +23,9 @@ Enabled=
 Format=
 
 [Screensaver]
-Enabled=
-IdleTime=
-Intensity=
+Enabled=true
+IdleTime=900
+Intensity=70%
 
 [Hotkeys]
 Hotkey1=1B;:quit

@@ -24,7 +24,7 @@ The following must be accomplished before an initial release can be made:
 - [x] Audio
 - [x] Gamepad controls
 - [x] Hotkeys
-- [ ] Screensaver
+- [x] Screensaver
 - [ ] Clock
 - [ ] Config/layout file generation
 - [ ] Project name chosen

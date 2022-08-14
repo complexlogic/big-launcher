@@ -377,7 +377,9 @@ void Gamepad::poll()
 
         if (control.repeat == 1) {
             spdlog::debug("Gamepad {} detected", control.label);
+            ticks.last_input = ticks.main;
             execute_command(control.command);
+
         }
         else if (control.repeat == delay_period) {
             execute_command(control.command);
@@ -722,6 +724,7 @@ int main(int argc, char *argv[])
                                 } 
                             }
                         }
+                        ticks.last_input = ticks.main;
                         SDL_FlushEvent(SDL_KEYDOWN);
                     }
                     break;

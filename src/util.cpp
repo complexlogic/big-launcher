@@ -9,6 +9,7 @@
 #include "sound.hpp"
 #include "main.hpp"
 #include "util.hpp"
+#include "screensaver.hpp"
 
 
 extern "C" int handler(void* user, const char* section, const char* name, const char* value);
@@ -24,6 +25,10 @@ Config::Config()
     mouse_select = false;
     sound_enabled = false;
     sound_volume = MAX_VOLUME;
+
+    screensaver_enabled = false;
+    screensaver_idle_time = 900000;
+    screensaver_intensity = 170;
 }
 
 void Config::parse(const std::string &file, Gamepad &gamepad, HotkeyList &hotkey_list)
@@ -55,6 +60,14 @@ void Config::add_int(const char *value, int &out)
     }
 }
 
+void Config::add_time(const char *value, Uint32 &out, Uint32 min, Uint32 max)
+{
+    int x = std::stoi(value) * 1000;
+    if ((x || *value == '0') && x >= min && x <=max) {
+        out = x;
+    }
+}
+
 void Config::add_path(const char *value, std::string &out)
 {
     out = value;
@@ -68,10 +81,10 @@ void Config::add_path(const char *value, std::string &out)
 template <typename T>
 void Config::add_percent(const char *value, T &out, T ref, float min, float max)
 {
-    std::string v = value;
-    if (*(v.end() -1) != '%')
+    std::string_view string = value;
+    if (string.back() != '%')
         return;
-    float percent = atof(v.substr(0, v.size() - 1).c_str()) / 100.0f;
+    float percent = atof(std::string(string, 0, string.size() - 1).c_str()) / 100.0f;
     if (percent == 0.0f && strcmp(value, "0%"))
         return;
     if (percent < min)
@@ -81,7 +94,6 @@ void Config::add_percent(const char *value, T &out, T ref, float min, float max)
     
     out = static_cast<T>(percent * static_cast<float>(ref));
 }
-
 
 int handler(void* user, const char* section, const char* name, const char* value)
 {
@@ -113,6 +125,18 @@ int handler(void* user, const char* section, const char* name, const char* value
         }
         else if (MATCH(name, "Volume")) {
             config.add_int(value, config.sound_volume);
+        }
+    }
+
+    else if (MATCH(section, "Screensaver")) {
+        if (MATCH(name, "Enabled")) {
+            config.add_bool(value, config.screensaver_enabled);
+        }
+        else if (MATCH(name, "IdleTime")) {
+            config.add_time(value, config.screensaver_idle_time, MIN_SCREENSAVER_IDLE_TIME, MAX_SCREENSAVER_IDLE_TIME);
+        }
+        else if (MATCH(name, "Intensity")) {
+            config.add_percent<Uint8>(value, config.screensaver_intensity, 255, 0.1f, 1.f);
         }
     }
 

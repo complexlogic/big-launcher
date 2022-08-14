@@ -15,6 +15,7 @@
 #include "layout.hpp"
 #include "image.hpp"
 #include "main.hpp"
+#include "screensaver.hpp"
 #include "sound.hpp"
 #include "util.hpp"
 #include "platform/platform.hpp"
@@ -855,6 +856,10 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     highlight_x_advance = card_w + card_spacing;
     highlight_y_advance = card_h + card_spacing;
 
+    // Screensaver
+    if (config.screensaver_enabled)
+        screensaver.render_surface(screen_width, screen_height);
+
     spdlog::debug("Successfully rendered surfaces");
 }
 
@@ -904,6 +909,8 @@ void Layout::load_textures(SDL_Renderer *renderer)
     card_shadow_texture = NULL;
 
     menu_highlight.render_texture(renderer);
+    if (config.screensaver_enabled)
+        screensaver.render_texture(renderer);
     SDL_SetRenderTarget(renderer, NULL);
     spdlog::debug("Sucessfully rendered textures");
 }
@@ -1195,6 +1202,9 @@ void Layout::update()
         delete pressed_entry;
         pressed_entry = NULL;
     }
+
+    if (config.screensaver_enabled)
+        screensaver.update();
     
 }
 
@@ -1300,6 +1310,10 @@ void Layout::draw()
     if (selection_mode == SELECTION_MENU) {
         SDL_RenderCopy(renderer, menu_highlight.texture, NULL, &menu_highlight.rect);
     }
+
+    // Draw screensaver
+    if (screensaver.active)
+        SDL_RenderCopy(renderer, screensaver.texture, NULL, NULL);
 
     // Output to screen
     SDL_RenderPresent(renderer);

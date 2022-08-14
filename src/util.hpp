@@ -24,9 +24,13 @@ public:
 
     bool mouse_select;
     bool debug;
-    bool sound_enabled;
 
+    bool sound_enabled;
     int sound_volume;
+
+    bool screensaver_enabled;
+    Uint32 screensaver_idle_time;
+    Uint8 screensaver_intensity;
 
     bool gamepad_enabled;
     int gamepad_index;
@@ -40,6 +44,7 @@ public:
     void add_string(const char *value, std::string &out);
     void add_bool(const char *value, bool &out);
     void add_path(const char *value, std::string &out);
+    void add_time(const char *value, Uint32 &out, Uint32 min, Uint32 max);
     
     template <typename T>
     void add_percent(const char *value, T &out, T ref, float min = 0.0f, float max = 1.0f);

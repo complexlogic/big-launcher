@@ -8,6 +8,8 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include "image.hpp"
+#include "screensaver.hpp"
+
 #define SIDEBAR_SHIFT_TIME 200.0f
 #define ROW_SHIFT_TIME 120.0f
 #define HIGHLIGHT_SHIFT_TIME 100.0f
@@ -251,6 +253,7 @@ class Layout {
         int highlight_y_advance;
 
         PressedEntry *pressed_entry;
+        Screensaver screensaver;
 
     public:
         Layout();

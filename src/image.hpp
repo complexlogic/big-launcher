@@ -1,6 +1,7 @@
 #ifndef HAS_IMAGE_H
 #define HAS_IMAGE_H
-
+#include <string>
+#include <vector>
 #include "external/nanosvg.h"
 #include <SDL_ttf.h>
 

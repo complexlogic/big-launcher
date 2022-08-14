@@ -119,6 +119,7 @@ class HotkeyList {
 typedef struct {
     Uint32 main;
     Uint32 application_launch;
+    Uint32 last_input;
 } Ticks;
 
 
