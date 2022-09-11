@@ -6,6 +6,7 @@
 #include <fmt/core.h>
 #include <spdlog/spdlog.h>
 #include <ini.h>
+#include <lconfig.h>
 #include "sound.hpp"
 #include "main.hpp"
 #include "util.hpp"
@@ -14,6 +15,7 @@
 
 extern "C" int handler(void* user, const char* section, const char* name, const char* value);
 extern Config config;
+extern char *executable_dir;
 
 Config::Config()
 {
@@ -298,26 +300,67 @@ void join_paths(std::string &out, std::initializer_list<const char*> list)
 {
     if (list.size() < 2)
         return;
-
     std::filesystem::path path;
     auto it = list.begin();
     path = *it;
     it++;
     for(it; it != list.end(); ++it) {
+        if (*it == NULL)
+            return;
         path /= *it;
     }
     out = path.string();
 }
 
-bool find_file(std::string &out, const char *filename, const std::initializer_list<const char*> &prefixes)
+template <FileType file_type>
+bool find_file(std::string &out, const char *filename)
 {
-    //std::filesystem::path path;
+    static std::vector<const char*> prefixes;
+    static std::string str;
+    if constexpr(file_type == TYPE_CONFIG) {
+        if (!prefixes.size()) {
+#ifdef __unix__
+            prefixes.resize(4);
+            join_paths(str, {getenv("HOME"), ".config", EXECUTABLE_TITLE});
+            prefixes[0] = CURRENT_DIRECTORY;
+            prefixes[1] = executable_dir;
+            prefixes[2] = str.c_str();
+            prefixes[3] = SYSTEM_SHARE_DIR;
+#endif
+        }
+    }
+
+    if constexpr(file_type == TYPE_FONT) {
+        if (!prefixes.size()) {
+#ifdef __unix__
+            prefixes.resize(2);
+            join_paths(str, {executable_dir, "assets", "fonts"});
+            prefixes[0] = str.c_str();
+            prefixes[1] = SYSTEM_FONTS_DIR;
+
+#endif
+        }
+    }
+
+    if constexpr(file_type == TYPE_AUDIO) {
+        if (!prefixes.size()) {
+#ifdef __unix__
+            prefixes.resize(2);
+            join_paths(str, {executable_dir, "assets", "sounds"});
+            prefixes[0] = str.c_str();
+            prefixes[1] = SYSTEM_SOUNDS_DIR;
+
+#endif
+        }
+    }
     for (const char *prefix : prefixes) {
         join_paths(out, {prefix, filename});
-        //path = out;
         if (std::filesystem::exists(out))
             return true;
     }
     out.clear();
     return false;
 }
+template bool find_file<TYPE_CONFIG>(std::string &out, const char *filename);
+template bool find_file<TYPE_FONT>(std::string &out, const char *filename);
+template bool find_file<TYPE_AUDIO>(std::string &out, const char *filename);

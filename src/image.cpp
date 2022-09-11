@@ -158,15 +158,7 @@ Font::~Font()
 int Font::load(const char *file, int height)
 {
     std::string font_path;
-    std::string font_dir_exe;
-    join_paths(font_dir_exe, {executable_dir, "assets", "fonts"});
-#ifdef __unix__
-    std::initializer_list<const char*> prefixes = {
-        font_dir_exe.c_str(),
-        SYSTEM_FONTS_DIR
-    };
-#endif
-    if (!find_file(font_path, file, prefixes)) {
+    if (!find_file<TYPE_FONT>(font_path, file)) {
         spdlog::critical("Could not locate font '{}'", file);
         quit(EXIT_FAILURE);
     }

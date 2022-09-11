@@ -7,6 +7,13 @@
 #include "main.hpp"
 #define MATCH(a,b) !strcmp(a,b)
 
+typedef enum {
+    TYPE_CONFIG,
+    TYPE_FONT,
+    TYPE_AUDIO,
+
+} FileType;
+
 typedef struct {
     Gamepad &gamepad;
     HotkeyList &hotkey_list;
@@ -57,6 +64,8 @@ void utf8_truncate(char *string, int width, int max_width);
 void copy_string_alloc(char **dest, const char *string);
 bool hex_to_color(const char *string, SDL_Color &color);
 void join_paths(std::string &out, std::initializer_list<const char*> list);
-bool find_file(std::string &out, const char *filename, const std::initializer_list<const char*> &prefixes);
+template <FileType file_type>
+extern bool find_file(std::string &out, const char *filename);
+
 
 #endif

@@ -60,17 +60,11 @@ int Sound::init()
     // Locate sound files but don't load them yet
     std::string sound_dir_exe;
     join_paths(sound_dir_exe, {executable_dir, "assets", "sounds"});
-#ifdef __unix__
-    std::initializer_list<const char*> prefixes = {
-        sound_dir_exe.c_str(),
-        SYSTEM_SOUNDS_DIR
-    };
-#endif
-    if (!find_file(click_path, CLICK_FILENAME, prefixes)) {
+    if (!find_file<TYPE_AUDIO>(click_path, CLICK_FILENAME)) {
         spdlog::error("Could not locate audio file '{}'", CLICK_FILENAME);
         return 1;
     }
-    if (!find_file(select_path, SELECT_FILENAME, prefixes)) {
+    if (!find_file<TYPE_AUDIO>(select_path, SELECT_FILENAME)) {
         spdlog::error("Could not locate audio file '{}'", SELECT_FILENAME);
         return 1;
     }

@@ -607,23 +607,13 @@ int main(int argc, char *argv[])
     }
     
     // Find layout and config files
-#ifdef __unix__
-    std::string home_config;
-    join_paths(home_config, {home_dir, ".config", EXECUTABLE_TITLE});
-    std::initializer_list<const char*> prefixes = {
-        CURRENT_DIRECTORY,
-        executable_dir,
-        home_config.c_str(),
-        SYSTEM_SHARE_DIR
-    };
-#endif
     if (!layout_path.empty()) {
         if (!std::filesystem::exists(layout_path)) {
             spdlog::critical("Layout file '{}' does not exist", layout_path);
             quit(EXIT_FAILURE);
         }
     }
-    else if (!find_file(layout_path, LAYOUT_FILENAME, prefixes)) {
+    else if (!find_file<TYPE_CONFIG>(layout_path, LAYOUT_FILENAME)) {
         spdlog::critical("Could not locate layout file");
         quit(EXIT_FAILURE);
     }
@@ -634,7 +624,7 @@ int main(int argc, char *argv[])
             quit(EXIT_FAILURE);
         }
     }
-    if (!find_file(config_path, CONFIG_FILENAME, prefixes)) {
+    if (!find_file<TYPE_CONFIG>(config_path, CONFIG_FILENAME)) {
         spdlog::critical("Could not locate config file");
         quit(EXIT_FAILURE);
     }
@@ -769,7 +759,7 @@ int main(int argc, char *argv[])
                     break;
                 case SDL_MOUSEBUTTONDOWN:
                     if (config.mouse_select && event.button.button == SDL_BUTTON_LEFT) {
-                        //ticks.last_input = ticks.main;
+                        ticks.last_input = ticks.main;
                         layout.select();
                     }
                     break;

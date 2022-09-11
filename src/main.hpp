@@ -6,7 +6,6 @@
 #include <vector>
 #include <set>
 
-
 #define DISPLAY_ASPECT_RATIO 1.77777778
 #define DISPLAY_ASPECT_RATIO_TOLERANCE 0.01f
 #define APPLICATION_WAIT_PERIOD 100
