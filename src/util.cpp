@@ -228,13 +228,13 @@ Uint16 get_unicode_code_point(const char *p, int &bytes)
 }
 
 // A function to truncate a utf-8 encoded string to max number of pixels
-void utf8_truncate(char *string, int width, int max_width)
+void utf8_truncate(const char *string, std::string &truncated_text, int width, int max_width)
 {
     int string_length = utf8_length(string);
     int avg_width = width / string_length;
     int num_chars = max_width / avg_width;
     int spaces = (string_length - num_chars) + 3; // Number of spaces to go back
-    char *ptr = string + strlen(string); // Change to null character of string
+    char *ptr = (char*) string + strlen(string); // Change to null character of string
     int chars = 0;
 
     // Go back required number of spaces
@@ -252,25 +252,7 @@ void utf8_truncate(char *string, int width, int max_width)
     } while (chars < spaces);
 
     // Add "..." to end of string to inform user of truncation
-    if (strlen(ptr) > 2) {
-        *ptr = '.';
-        *(ptr + 1) = '.';
-        *(ptr + 2) = '.';
-        *(ptr + 3) = '\0';
-    }
-}
-
-// Allocates memory and copies a variable length C-style string
-void copy_string_alloc(char **dest, const char *string)
-{
-    int length = strlen(string);
-    if (length) {
-        *dest = (char*) malloc(sizeof(char)*(length + 1));
-        strcpy(*dest, string);
-    }
-    else {
-        *dest = NULL;
-    }
+    truncated_text = std::string(string, 0, (ptr - string)) + "...";
 }
 
 // A function to convert a hex-formatted string into a color struct

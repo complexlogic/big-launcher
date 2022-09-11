@@ -175,13 +175,12 @@ SDL_Surface *Font::render_text(const char *text, SDL_Rect *src_rect, SDL_Rect *d
 {
     SDL_Surface *surface = NULL;
     int width;
-    char *truncated_text = NULL;
+    static std::string truncated_text;
     char *out_text = (char*) text;
     TTF_SizeUTF8(font, text, &width, NULL);
     if (width > max_width) {
-        copy_string_alloc(&truncated_text, text);
-        utf8_truncate(truncated_text, width, max_width);
-        out_text = truncated_text;
+        utf8_truncate(text, truncated_text, width, max_width);
+        out_text = truncated_text.data();
     }
 
     surface = TTF_RenderUTF8_Blended(font, out_text, color);
@@ -222,7 +221,6 @@ SDL_Surface *Font::render_text(const char *text, SDL_Rect *src_rect, SDL_Rect *d
         dst_rect->w = surface->w;
         dst_rect->h = (src_rect != NULL) ? src_rect->h : surface->h;
     }
-    free(truncated_text);
     return surface;
 }
 

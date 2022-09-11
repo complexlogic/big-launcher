@@ -10,8 +10,7 @@
 typedef enum {
     TYPE_CONFIG,
     TYPE_FONT,
-    TYPE_AUDIO,
-
+    TYPE_AUDIO
 } FileType;
 
 typedef struct {
@@ -60,8 +59,7 @@ public:
 
 int utf8_length(const char *string);
 Uint16 get_unicode_code_point(const char *p, int &bytes);
-void utf8_truncate(char *string, int width, int max_width);
-void copy_string_alloc(char **dest, const char *string);
+void utf8_truncate(const char *string, std::string &truncated_text, int width, int max_width);
 bool hex_to_color(const char *string, SDL_Color &color);
 void join_paths(std::string &out, std::initializer_list<const char*> list);
 template <FileType file_type>
