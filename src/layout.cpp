@@ -156,12 +156,12 @@ void Menu::add_entry(xmlNodePtr node)
         }
     }
     if (cmd_node == NULL) {
-        spdlog::error("Menu '{}': Entry '{}' is missing 'command' element", title, entry_title);
+        spdlog::error("Menu '{}': Entry '{}' is missing 'command' element", title, (const char*) entry_title);
         xmlFree(entry_title);
         return;
     }
     if (card_node == NULL) {
-        spdlog::error("Menu '{}': Entry '{}' is missing 'card' element", title, entry_title);
+        spdlog::error("Menu '{}': Entry '{}' is missing 'card' element", title, (const char*) entry_title);
         xmlFree(entry_title);
         return;
     }
@@ -169,7 +169,7 @@ void Menu::add_entry(xmlNodePtr node)
     // Parse command
     xmlChar *command = xmlNodeGetContent(cmd_node);
     if (command == NULL) {
-        spdlog::error("Menu '{}', Entry '{}': element 'command' has no content", title, entry_title);
+        spdlog::error("Menu '{}', Entry '{}': element 'command' has no content", title, (const char*) entry_title);
         xmlFree(entry_title);
         return;
     }
@@ -942,7 +942,7 @@ void Layout::move_up()
 
             // Adjust texture color
             set_texture_color((*current_entry)->texture, config.sidebar_text_color);
-            set_texture_color((*(current_entry  -1))->texture, config.sidebar_text_color_highlighted); 
+            set_texture_color((*(current_entry  - 1))->texture, config.sidebar_text_color_highlighted); 
             sidebar_highlight.rect.y -= sidebar_y_advance;
             current_entry--;
             sidebar_pos--;
