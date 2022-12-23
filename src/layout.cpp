@@ -51,34 +51,17 @@ void libxml2_error_handler(void *ctx, const char *msg, ...)
     }
 }
 
-Entry::Entry(const char *title, const char *command)
-{
-    this->title = title;
-    this->command = command;
-    surface = NULL;
-    texture = NULL;
-    icon_surface = NULL;
-    icon_margin = CARD_ICON_MARGIN;
-    background_color = {0xFF, 0xFF, 0xFF, 0xFF};
-}
-
-Entry::~Entry()
-{
-
-}
-
-
 // Custom card
 void Entry::add_card(const char *path)
 {
-    card_type = CUSTOM;
+    card_type = CardType::CUSTOM;
     this->path = path;
 }
 
 // Generated card, color background
 void Entry::add_card(SDL_Color &background_color, const char *path)
 {
-    card_type = GENERATED;
+    card_type = CardType::GENERATED;
     this->icon_path = path;
     this->background_color = background_color;
 }
@@ -86,7 +69,7 @@ void Entry::add_card(SDL_Color &background_color, const char *path)
 // Generated card, image background
 void Entry::add_card(const char *background_path, const char *icon_path)
 {
-    card_type = GENERATED;
+    card_type = CardType::GENERATED;
     this->path = background_path;
     this->icon_path = icon_path;
 }
@@ -101,18 +84,6 @@ void Entry::add_margin(const char *value)
     if ((percent == 0.f && string != "0%") || percent < 0.f || percent > MAX_CARD_ICON_MARGIN)
         return;
     icon_margin = percent;
-}
-
-
-Menu::Menu(const char *title)
-{
-    this->title = title;
-    type = MENU;
-    y_offset = 0;
-    row = 0;
-    column = 0;
-    max_columns = 0;
-    shift_count = 0;
 }
 
 int Menu::parse(xmlNodePtr node)
@@ -265,7 +236,7 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
     for (Entry &entry : entry_list) {
         bg = NULL;
 
-        if (entry.card_type == CUSTOM) {
+        if (entry.card_type == Entry::CardType::CUSTOM) {
             entry.surface = (entry.path.ends_with(".svg")) 
                                  ? rasterize_svg_from_file(entry.path, w, h)
                                  : load_surface(entry.path);
@@ -396,7 +367,7 @@ void Menu::render_card_textures(SDL_Renderer *renderer, SDL_Texture *card_shadow
         SDL_DestroyTexture(texture);
         
         // Copy the icon
-        if (entry.card_type == GENERATED) {
+        if (entry.card_type == Entry::CardType::GENERATED) {
             texture = SDL_CreateTextureFromSurface(renderer, entry.icon_surface);
             SDL_RenderCopy(renderer, texture, NULL, &entry.icon_rect);
             free_surface(entry.icon_surface);
@@ -475,28 +446,6 @@ void Menu::print_entries()
     }
 }
 
-Command::Command(const char *title, const char *command)
-{
-    this->title = title;
-    this->command = command;
-    type = COMMAND;
-}
-
-Layout::Layout()
-{
-    sidebar_pos = 0;
-    max_sidebar_entries = -1;
-    renderer = NULL;
-    current_menu = NULL;
-    sidebar_shift_count = 0;
-    num_sidebar_entries = 0;
-    selection_mode = SELECTION_SIDEBAR;
-    background_surface = NULL;
-    background_texture = NULL;
-    card_shadow = NULL;
-    pressed_entry = NULL;
-}
-
 void Layout::parse(const std::string &file)
 {
     spdlog::debug("Parsing layout file '{}'", file);
@@ -557,28 +506,9 @@ void Layout::parse(const std::string &file)
     }
     xmlFreeDoc(doc);
     
-    /*
-    for (const SidebarEntry *entry : list) {
-        if (entry->type == MENU) {
-            menu = (Menu*) entry;
-            fmt::print("Menu '{}' has {} entries:\n", (char*) menu->title.c_str(), menu->num_entries());
-            menu->print_entries();
-            fmt::print("\n");
-        }
-        else if (entry->type == COMMAND) {
-            command = (Command*) entry;
-            fmt::print("Sidebar Command:\n");
-            fmt::print("Title: {}\n", (char*) command->title.c_str());
-            fmt::print("Command: {}\n", (char*) command->command.c_str());
-            fmt::print("\n");
-        }
-    }
-    */
-    
-
     num_sidebar_entries = list.size();
     current_entry = list.begin();
-    if ((*current_entry)->type == MENU) {
+    if ((*current_entry)->type == SidebarEntry::Type::MENU) {
         current_menu = (Menu*) *current_entry;
         visible_menus.insert(current_menu);
     }
@@ -627,13 +557,6 @@ void SidebarHighlight::render_texture(SDL_Renderer *renderer)
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     free_surface(surface);
     surface = NULL;
-}
-
-
-MenuHighlight::MenuHighlight()
-{
-    surface = NULL;
-    texture = NULL;
 }
 
 
@@ -690,7 +613,7 @@ PressedEntry::PressedEntry(Entry &entry) : entry(entry)
 {
     original_rect = entry.rect;
     total = (int) std::round((float) original_rect.w * ENTRY_SHRINK_DISTANCE);
-    direction = DIRECTION_RIGHT;
+    direction = Direction::RIGHT;
     aspect_ratio = (float) original_rect.w / (float) original_rect.h;
     current = 0;
     velocity = ((float) (2 * total)) / (float) ENTRY_PRESS_TIME;
@@ -703,14 +626,14 @@ bool PressedEntry::update()
     bool ret = false;
     Uint32 current_ticks = SDL_GetTicks();
     int change = (int) std::round((float) (current_ticks - ticks) * velocity);
-    if (direction == DIRECTION_RIGHT) {
+    if (direction == Direction::RIGHT) {
         current += change;
         if (current >=total) {
             current = total;
-            direction = DIRECTION_LEFT;
+            direction = Direction::LEFT;
         }
     }
-    else if (direction == DIRECTION_LEFT) {
+    else if (direction == Direction::LEFT) {
         current -= change;
         if (current <= 0) {
             current = 0;
@@ -746,7 +669,7 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     // Background
     if (!config.background_image_path.empty()) {
         background_surface = (config.background_image_path.ends_with(".svg")) 
-                             ? rasterize_svg_from_file(config.background_image_path, screen_width/4, screen_height/4) 
+                             ? rasterize_svg_from_file(config.background_image_path, screen_width, screen_height) 
                              : load_surface(config.background_image_path);
     }
 
@@ -821,7 +744,7 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     max_rows = (y_max - y_min) / card_y_advance;
     Menu *menu = NULL;
     for (const SidebarEntry *entry : list) {
-        if (entry->type == MENU) {
+        if (entry->type == SidebarEntry::Type::MENU) {
             menu = (Menu*) entry;
             menu->render_surfaces(card_shadow, 
                 card_shadow_offset, 
@@ -900,7 +823,7 @@ void Layout::load_textures(SDL_Renderer *renderer)
         entry->texture = SDL_CreateTextureFromSurface(renderer, entry->surface);
         (entry == *current_entry) ? set_texture_color(entry->texture, config.sidebar_text_color_highlighted) : set_texture_color(entry->texture, config.sidebar_text_color);
         free_surface(entry->surface);
-        if (entry->type == MENU) {
+        if (entry->type == SidebarEntry::Type::MENU) {
             menu = (Menu*) entry;
             menu->render_card_textures(renderer, card_shadow_texture, card_shadow_offset, card_w, card_h);
         }
@@ -918,23 +841,23 @@ void Layout::load_textures(SDL_Renderer *renderer)
 
 void Layout::move_up()
 {
-    if (selection_mode == SELECTION_SIDEBAR) {
+    if (selection_mode == SelectionMode::SIDEBAR) {
         if (sidebar_pos) {
             if (sidebar_shift_count && sidebar_pos == sidebar_shift_count){
-                this->add_shift(SHIFT_SIDEBAR, DIRECTION_DOWN, sidebar_y_advance, SIDEBAR_SHIFT_TIME, NULL);
+                this->add_shift(Shift::Type::SIDEBAR, Direction::DOWN, sidebar_y_advance, SIDEBAR_SHIFT_TIME, NULL);
                 sidebar_shift_count--;
             }
 
             // Shift menus if necessary
             if (current_menu != NULL) {
-                this->add_shift(SHIFT_MENU, DIRECTION_DOWN, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
+                this->add_shift(Shift::Type::MENU, Direction::DOWN, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
             }
-            if ((*(current_entry - 1))->type == MENU) {
+            if ((*(current_entry - 1))->type == SidebarEntry::Type::MENU) {
                 current_menu = (Menu*) *(current_entry - 1);
                 if (!current_menu->y_offset)
                     current_menu->y_offset = -1 * current_menu->height;
                 visible_menus.insert(current_menu);
-                this->add_shift(SHIFT_MENU, DIRECTION_DOWN, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
+                this->add_shift(Shift::Type::MENU, Direction::DOWN, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
             }
             else {
                 current_menu = NULL;
@@ -951,16 +874,16 @@ void Layout::move_up()
         }
     }
 
-    else if (selection_mode == SELECTION_MENU && current_menu->row) {
+    else if (selection_mode == SelectionMode::MENU && current_menu->row) {
         if (current_menu->shift_count && current_menu->row == current_menu->shift_count) {
             
             // Shift rows down
-            this->add_shift(SHIFT_MENU, DIRECTION_DOWN, card_y_advance, ROW_SHIFT_TIME, current_menu);
+            this->add_shift(Shift::Type::MENU, Direction::DOWN, card_y_advance, ROW_SHIFT_TIME, current_menu);
             current_menu->shift_count--;
         }
         
         else {
-            this->add_shift(SHIFT_HIGHLIGHT, DIRECTION_UP, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, NULL);
+            this->add_shift(Shift::Type::HIGHLIGHT, Direction::UP, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, NULL);
         }
         current_menu->current_entry -= 3;
         current_menu->row--;
@@ -972,19 +895,19 @@ void Layout::move_up()
 
 void Layout::move_down()
 {
-    if (selection_mode == SELECTION_SIDEBAR) {
+    if (selection_mode == SelectionMode::SIDEBAR) {
         if (sidebar_pos < (num_sidebar_entries - 1)) {
 
             // Shift menus if necessary
             if (current_menu != NULL) {
-                this->add_shift(SHIFT_MENU, DIRECTION_UP, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
+                this->add_shift(Shift::Type::MENU, Direction::UP, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
             }
-            if ((*(current_entry + 1))->type == MENU) {
+            if ((*(current_entry + 1))->type == SidebarEntry::Type::MENU) {
                 current_menu = (Menu*) *(current_entry + 1);
                 if (!current_menu->y_offset)
                     current_menu->y_offset = current_menu->height;
                 visible_menus.insert(current_menu);
-                this->add_shift(SHIFT_MENU, DIRECTION_UP, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
+                this->add_shift(Shift::Type::MENU, Direction::UP, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
             }
             else {
                 current_menu = NULL;
@@ -1002,22 +925,22 @@ void Layout::move_down()
 
         // Shift sidebar
         if (max_sidebar_entries != -1 && sidebar_pos < (num_sidebar_entries - max_sidebar_entries)) {
-            this->add_shift(SHIFT_SIDEBAR, DIRECTION_UP, sidebar_y_advance, SIDEBAR_SHIFT_TIME, NULL);
+            this->add_shift(Shift::Type::SIDEBAR, Direction::UP, sidebar_y_advance, SIDEBAR_SHIFT_TIME, NULL);
             sidebar_shift_count++;
         }
     }
 
     // We are in menu mode
-    else if (selection_mode == SELECTION_MENU) {
+    else if (selection_mode == SelectionMode::MENU) {
         if (current_menu->row * COLUMNS + current_menu->column + COLUMNS < current_menu->num_entries()) {
 
             if (current_menu->total_rows > max_rows && 
             current_menu->row + current_menu->shift_count < (current_menu->total_rows - 2)) {
-                this->add_shift(SHIFT_MENU, DIRECTION_UP, card_y_advance, ROW_SHIFT_TIME, current_menu);
+                this->add_shift(Shift::Type::MENU, Direction::UP, card_y_advance, ROW_SHIFT_TIME, current_menu);
                 current_menu->shift_count++;
             }
             else {
-                this->add_shift(SHIFT_HIGHLIGHT, DIRECTION_DOWN, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, NULL);
+                this->add_shift(Shift::Type::HIGHLIGHT, Direction::DOWN, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, NULL);
             }
 
             current_menu->current_entry += COLUMNS;
@@ -1031,10 +954,10 @@ void Layout::move_down()
 
 void Layout::move_left()
 {
-    if (selection_mode == SELECTION_MENU) {
+    if (selection_mode == SelectionMode::MENU) {
         if (current_menu->column == 0) {
             if (!shift_queue.size()) {
-                selection_mode = SELECTION_SIDEBAR;
+                selection_mode = SelectionMode::SIDEBAR;
                 set_texture_color((*current_entry)->texture, config.sidebar_text_color_highlighted);
                 current_menu->row = 0;
                 menu_highlight.rect.y = highlight_y0;
@@ -1045,14 +968,14 @@ void Layout::move_left()
                 // Reset menu shift
                 if (current_menu->shift_count) {
                     int shift_amount = current_menu->shift_count*card_y_advance;
-                    this->add_shift(SHIFT_MENU, DIRECTION_DOWN, shift_amount, HIGHLIGHT_SHIFT_TIME, current_menu);
+                    this->add_shift(Shift::Type::MENU, Direction::DOWN, shift_amount, HIGHLIGHT_SHIFT_TIME, current_menu);
                     current_menu->shift_count = 0;
                 }
             }
         }
         else {
             // Move highlight left
-            this->add_shift(SHIFT_HIGHLIGHT, DIRECTION_LEFT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
+            this->add_shift(Shift::Type::HIGHLIGHT, Direction::LEFT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
             current_menu->column--;
             current_menu->current_entry--;
             if (sound.connected)
@@ -1064,21 +987,21 @@ void Layout::move_left()
 
 void Layout::move_right()
 {
-    if (selection_mode == SELECTION_SIDEBAR && current_menu != NULL && !shift_queue.size()) {
-        selection_mode = SELECTION_MENU;
+    if (selection_mode == SelectionMode::SIDEBAR && current_menu != NULL && !shift_queue.size()) {
+        selection_mode = SelectionMode::MENU;
         set_texture_color((*current_entry)->texture, config.sidebar_text_color);
         if (sound.connected)
             sound.play_click();
     }
 
-    else if (selection_mode == SELECTION_MENU) {
+    else if (selection_mode == SelectionMode::MENU) {
         int max_columns = current_menu->num_entries() - current_menu->row * current_menu->max_columns;
         if (max_columns > current_menu->max_columns)
             max_columns = current_menu->max_columns;
         if(current_menu->column < max_columns - 1) {
             
             // Shift highlight right
-            this->add_shift(SHIFT_HIGHLIGHT, DIRECTION_RIGHT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
+            this->add_shift(Shift::Type::HIGHLIGHT, Direction::RIGHT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
 
             current_menu->column++;
             current_menu->current_entry++;
@@ -1090,14 +1013,14 @@ void Layout::move_right()
 
 void Layout::select()
 {
-    if (selection_mode == SELECTION_SIDEBAR) {
-        if ((*current_entry)->type == COMMAND) {
+    if (selection_mode == SelectionMode::SIDEBAR) {
+        if ((*current_entry)->type == SidebarEntry::Type::COMMAND) {
             Command *command = (Command*) *current_entry;
             execute_command(command->command);
             sound.play_select();
         }
     }
-    else if (selection_mode == SELECTION_MENU && pressed_entry == NULL) {
+    else if (selection_mode == SelectionMode::MENU && pressed_entry == NULL) {
         Entry &entry = *(current_menu->current_entry);
         spdlog::debug("User selected entry '{}'", entry.title);
         pressed_entry = new PressedEntry(entry);
@@ -1105,21 +1028,21 @@ void Layout::select()
     }
 }
 
-void Layout::add_shift(ShiftType type, Direction direction, int target, float time, Menu *menu)
+void Layout::add_shift(Shift::Type type, Direction direction, int target, float time, Menu *menu)
 {
     static const Direction opposites[] = {
-        DIRECTION_DOWN,
-        DIRECTION_UP,
-        DIRECTION_RIGHT,
-        DIRECTION_LEFT
+        Direction::DOWN,
+        Direction::UP,
+        Direction::RIGHT,
+        Direction::LEFT
     };
-    Direction opposite = opposites[direction];
+    Direction opposite = opposites[static_cast<int>(direction)];
     float velocity;
 
     // Interrupt if opposite direction shift is in progress
     for(auto shift = shift_queue.begin(); shift != shift_queue.end(); ++shift) {
         if (shift->direction == opposite && shift->type == type && 
-        (shift->type != SHIFT_MENU || shift->menu == menu)) {
+        (shift->type != Shift::Type::MENU || shift->menu == menu)) {
             int new_target = target - (shift->target - shift->total);
             velocity = shift->velocity;
             shift_queue[shift - shift_queue.begin()] = {
@@ -1162,25 +1085,25 @@ void Layout::shift()
             current = shift->target - shift->total;
         }
         shift->total += current;
-        if (shift->direction == DIRECTION_UP || shift->direction == DIRECTION_LEFT)
+        if (shift->direction == Direction::UP || shift->direction == Direction::LEFT)
             current *= -1;
 
         // Apply shift
-        if (shift->type == SHIFT_SIDEBAR) {
+        if (shift->type == Shift::Type::SIDEBAR) {
             sidebar_highlight.rect.y += current;
             for (SidebarEntry *entry : list) {
                 entry->dst_rect.y += current;
             }
         }
-        else if (shift->type == SHIFT_MENU) {
+        else if (shift->type == Shift::Type::MENU) {
             shift->menu->y_offset += current;
             if (shift->target == shift->total && shift->menu != current_menu) {
                 shift->menu->y_offset = 0;
                 visible_menus.erase(shift->menu);
             }
         }
-        else if (shift->type == SHIFT_HIGHLIGHT) {
-            if (shift->direction == DIRECTION_LEFT || shift->direction == DIRECTION_RIGHT) {
+        else if (shift->type == Shift::Type::HIGHLIGHT) {
+            if (shift->direction == Direction::LEFT || shift->direction == Direction::RIGHT) {
                 menu_highlight.rect.x += current;
             }
             else {
@@ -1217,12 +1140,11 @@ void Layout::draw()
     SDL_RenderClear(renderer);
 
     // Draw background
-    if (background_texture != NULL) {
+    if (background_texture != NULL)
         SDL_RenderCopy(renderer, background_texture, NULL, NULL);
-    }
 
     // Draw sidebar highlight
-    if (selection_mode == SELECTION_SIDEBAR) {
+    if (selection_mode == SelectionMode::SIDEBAR) {
         y = sidebar_highlight.rect.y;
         h = sidebar_highlight.rect.h;
         int sidebar_y_min = y_min - sidebar_highlight.shadow_offset;
@@ -1280,7 +1202,7 @@ void Layout::draw()
         else if ((y + h) > y_max) {
             if (y < y_max) {
                 src_rect = {
-                    entry->src_rect.x, //x
+                    entry->src_rect.x, // x
                     entry->src_rect.y, // y
                     entry->src_rect.w, // w
                     entry->src_rect.h - ((y + h) - y_max) // h
@@ -1296,20 +1218,17 @@ void Layout::draw()
         }
 
         // Default, fully visible case
-        else {
+        else
             SDL_RenderCopy(renderer, entry->texture, &entry->src_rect, &entry->dst_rect);
-        }
     }
 
     // Draw menu entries
-    for (Menu *menu : visible_menus) {
+    for (Menu *menu : visible_menus)
         menu->draw_entries(renderer, y_min - card_shadow_offset, y_max);
-    }
 
     // Draw menu highlight
-    if (selection_mode == SELECTION_MENU) {
+    if (selection_mode == SelectionMode::MENU)
         SDL_RenderCopy(renderer, menu_highlight.texture, NULL, &menu_highlight.rect);
-    }
 
     // Draw screensaver
     if (screensaver.active)

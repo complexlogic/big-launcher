@@ -1,5 +1,4 @@
-#ifndef HAS_LAYOUT_H
-#define HAS_LAYOUT_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -54,52 +53,36 @@
 #define MENU_HIGHLIGHT_FORMAT "<svg viewBox=\"0 0 {} {}\"><rect width=\"100%\" height=\"100%\" rx=\"{}\" fill=\"#{:02x}{:02x}{:02x}\" /><rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"{}\"  fill=\"#{:02x}{:02x}{:02x}\"/></svg>"
 #define format_menu_highlight(w, h, color, mask_color, w_inner, h_inner, t, rx_outter, rx_inner) fmt::format(MENU_HIGHLIGHT_FORMAT, w, h, rx_outter, color.r, color.g, color.b, t, t, w_inner, h_inner, rx_inner, mask_color.r, mask_color.g, mask_color.b)
 
-typedef enum  {
-    MENU,
-    COMMAND
-} SidebarEntryType;
 
-typedef enum {
-    CUSTOM,
-    GENERATED
-} CardType;
-
-typedef enum {
-    DIRECTION_UP,
-    DIRECTION_DOWN,
-    DIRECTION_LEFT,
-    DIRECTION_RIGHT
-} Direction;
-
-typedef enum {
-    SHIFT_SIDEBAR,
-    SHIFT_MENU,
-    SHIFT_HIGHLIGHT
-} ShiftType;
-
-typedef enum {
-    SELECTION_SIDEBAR,
-    SELECTION_MENU
-} SelectionMode;
+enum class Direction {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
+};
 
 class Entry {
     public:
+        enum CardType{
+            CUSTOM,
+            GENERATED
+        };
+
         CardType card_type;
         std::string title;
         std::string command;
-        SDL_Color background_color;
+        SDL_Color background_color { 0xFF };
         std::string path; // doubles for both card path and background in generated mode
         std::string icon_path;
 
-        SDL_Surface *surface;
+        SDL_Surface *surface = nullptr;
         SDL_Rect rect;
-        SDL_Surface *icon_surface;
+        SDL_Surface *icon_surface = nullptr;
         SDL_Rect icon_rect;
-        float icon_margin;
-        SDL_Texture *texture;
+        float icon_margin = CARD_ICON_MARGIN;
+        SDL_Texture *texture = nullptr;
 
-        Entry(const char *title, const char *command);
-        ~Entry();
+        Entry(const char *title, const char *command) : title(title), command(command) {}
         void add_card(const char *path);
         void add_card(SDL_Color &background_color, const char *path);
         void add_card(const char *background_path, const char *icon_path);
@@ -125,32 +108,34 @@ class PressedEntry {
 
 class SidebarEntry {
     public:
-        SidebarEntryType type;
+        enum Type {
+            MENU,
+            COMMAND
+        };
+        Type type;
         std::string title;
-        SDL_Surface *surface;
-        SDL_Texture *texture;
+        SDL_Surface *surface = nullptr;
+        SDL_Texture *texture = nullptr;
         SDL_Rect src_rect;
         SDL_Rect dst_rect;
+        
+        SidebarEntry(const char *title, Type type) : title(title), type(type) {}
 };
 
 
-class Menu : public SidebarEntry{
-    private:
-        
-
+class Menu : public SidebarEntry {
     public:
         std::vector<Entry> entry_list;
-        int y_offset;
-        int row;
-        int column;
-        int total_rows;
-        int max_columns;
-        int shift_count;
+        int y_offset = 0;
+        int row = 0;
+        int column = 0;
+        int total_rows = 0;
+        int max_columns = 0;
+        int shift_count = 0;
         int height;
 
         std::vector<Entry>::iterator current_entry;
-        Menu(const char *title);
-        //~Menu();
+        Menu(const char *title) : SidebarEntry(title, MENU) {}
         int parse(xmlNodePtr node);
         void add_entry(xmlNodePtr node);
         size_t num_entries();
@@ -160,21 +145,26 @@ class Menu : public SidebarEntry{
         void print_entries();
 };
 
-typedef struct {
-    ShiftType type;
+struct Shift {
+    enum Type {
+        SIDEBAR,
+        MENU,
+        HIGHLIGHT
+    };
+
+    Type type;
     Menu *menu;
     Direction direction;
     Uint32 ticks;
     float velocity;
     int total;
     int target;
-
-} Shift;
+};
 
 class Command : public SidebarEntry {
     public:
         std::string command;
-        Command(const char *title, const char *command);
+        Command(const char *title, const char *command) : SidebarEntry(title, COMMAND), command(command) {}
 };
 
 class SidebarHighlight {
@@ -193,11 +183,10 @@ class SidebarHighlight {
 
 class MenuHighlight {
     public:
-        SDL_Surface *surface;
-        SDL_Texture *texture;
+        SDL_Surface *surface = nullptr;
+        SDL_Texture *texture = nullptr;
         SDL_Rect rect;
 
-        MenuHighlight();
         void render_surface(int x, int y, int w, int h, int t, int shadow_offset);
         void render_texture(SDL_Renderer *renderer);
 
@@ -205,33 +194,38 @@ class MenuHighlight {
 
 class Layout {
     private:
-        SDL_Renderer *renderer;
+        enum SelectionMode {
+            SIDEBAR,
+            MENU
+        };
+
+        SDL_Renderer *renderer = nullptr;
         int screen_width;
         int screen_height;
         float f_screen_width;
         float f_screen_height;
 
-        SDL_Surface *background_surface;
-        SDL_Texture *background_texture;
+        SDL_Surface *background_surface = nullptr;
+        SDL_Texture *background_texture = nullptr;
 
         // States
         std::vector<Shift> shift_queue;
         std::set<Menu*> visible_menus;
-        SelectionMode selection_mode;
-        Menu *current_menu;
+        SelectionMode selection_mode = SelectionMode::SIDEBAR;
+        Menu *current_menu = NULL;
 
         // Sidebar
         std::vector<SidebarEntry*> list;
         std::vector<SidebarEntry*>::iterator current_entry;
         Font sidebar_font;
         SidebarHighlight sidebar_highlight;
-        int sidebar_pos;
+        int sidebar_pos = 0;
         int sidebar_y_advance;
         int y_min;
         int y_max;
-        int max_sidebar_entries;
+        int max_sidebar_entries = -1;
         int sidebar_shift_count;
-        int num_sidebar_entries;
+        int num_sidebar_entries = 0;
 
         // Menu entry cards
         int card_w;
@@ -240,8 +234,8 @@ class Layout {
         int card_y0;
         int card_y_advance;
         int max_rows;
-        SDL_Surface *card_shadow;
-        SDL_Texture *card_shadow_texture;
+        SDL_Surface *card_shadow = nullptr;
+        SDL_Texture *card_shadow_texture = nullptr;
         SDL_Rect cr;
         int card_shadow_offset;
 
@@ -252,11 +246,10 @@ class Layout {
         int highlight_x_advance;
         int highlight_y_advance;
 
-        PressedEntry *pressed_entry;
+        PressedEntry *pressed_entry = nullptr;
         Screensaver screensaver;
 
     public:
-        Layout();
         void parse(const std::string &file);
         void add_entry();
         void load_surfaces(int screen_width, int screen_height);
@@ -268,8 +261,6 @@ class Layout {
         void move_left();
         void move_right();
         void select(void);
-        void add_shift(ShiftType type, Direction direction, int target, float time, Menu *menu);
+        void add_shift(Shift::Type type, Direction direction, int target, float time, Menu *menu);
         void shift();
 };
-
-#endif
