@@ -1,5 +1,4 @@
-#ifndef HAS_MAIN_H
-#define HAS_MAIN_H
+#pragma once
 
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -33,40 +32,40 @@ class Display {
         void print_debug_info();
 };
 
-typedef enum {
+enum ControlType {
     TYPE_LSTICK,
     TYPE_RSTICK,
     TYPE_BUTTON,
     TYPE_TRIGGER
-} ControlType;
+};
 
-typedef enum {
+enum StickDirection {
     DIRECTION_NONE = -1,
     DIRECTION_XM,
     DIRECTION_XP,
     DIRECTION_YM,
     DIRECTION_YP,
-} StickDirection;
+};
 
-typedef struct Stick {
+struct Stick {
     ControlType type;
     std::array<SDL_GameControllerAxis, 2> axes;
     Stick(ControlType type, std::array<SDL_GameControllerAxis, 2> axes) : type(type), axes(axes){};
-} Stick;
+};
 
-typedef struct {
+struct GamepadInfo{
     const char *label;
     ControlType type;
     StickDirection direction;
     int index;
-} GamepadInfo;
+};
 
-typedef enum {
+enum AxisType{
     AXIS_X,
     AXIS_Y,
-} AxisType;
+};
 
-typedef struct GamepadControl {
+struct GamepadControl {
     ControlType    type;
     int            index;
     StickDirection direction;
@@ -75,7 +74,7 @@ typedef struct GamepadControl {
     std::string    command;
     GamepadControl(ControlType type, int index, StickDirection direction, const char *label, const char *cmd) 
     : type(type), index(index), direction(direction), repeat(0), label(label), command(cmd){};
-} GamepadControl;
+};
 
 
 class Gamepad {
@@ -99,11 +98,11 @@ class Gamepad {
         void poll();
 };
 
-typedef struct Hotkey {
+struct Hotkey {
     SDL_Keycode keycode;
     std::string command;
     Hotkey(SDL_Keycode keycode, char *command) : keycode(keycode), command(command) {};
-} Hotkey;
+};
 
 class HotkeyList {
     private:
@@ -115,17 +114,17 @@ class HotkeyList {
         std::vector<Hotkey>::iterator end(void);
 };
 
-typedef struct {
+struct Ticks {
     Uint32 main;
     Uint32 application_launch;
     Uint32 last_input;
-} Ticks;
+};
 
 
-typedef struct {
+struct State {
     bool application_launching;
     bool application_running;
-} State;
+};
 
 
 #ifdef __GNUC__
@@ -156,5 +155,3 @@ static void name##_version() {                                                  
 
 void execute_command(const std::string &command);
 void quit(int status);
-
-#endif

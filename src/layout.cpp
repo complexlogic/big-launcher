@@ -62,7 +62,7 @@ void Entry::add_card(const char *path)
 void Entry::add_card(SDL_Color &background_color, const char *path)
 {
     card_type = CardType::GENERATED;
-    this->icon_path = path;
+    icon_path = path;
     this->background_color = background_color;
 }
 
@@ -70,7 +70,7 @@ void Entry::add_card(SDL_Color &background_color, const char *path)
 void Entry::add_card(const char *background_path, const char *icon_path)
 {
     card_type = CardType::GENERATED;
-    this->path = background_path;
+    path = background_path;
     this->icon_path = icon_path;
 }
 
@@ -90,7 +90,7 @@ int Menu::parse(xmlNodePtr node)
 {
     for (node = node->xmlChildrenNode; node != NULL; node = node->next) {
         if (!xmlStrcmp(node->name, (const xmlChar*) "entry")) {
-            this->add_entry(node);
+            add_entry(node);
         }
     }
     int num_entries = entry_list.size();
@@ -844,20 +844,20 @@ void Layout::move_up()
     if (selection_mode == SelectionMode::SIDEBAR) {
         if (sidebar_pos) {
             if (sidebar_shift_count && sidebar_pos == sidebar_shift_count){
-                this->add_shift(Shift::Type::SIDEBAR, Direction::DOWN, sidebar_y_advance, SIDEBAR_SHIFT_TIME, NULL);
+                add_shift(Shift::Type::SIDEBAR, Direction::DOWN, sidebar_y_advance, SIDEBAR_SHIFT_TIME, NULL);
                 sidebar_shift_count--;
             }
 
             // Shift menus if necessary
             if (current_menu != NULL) {
-                this->add_shift(Shift::Type::MENU, Direction::DOWN, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
+                add_shift(Shift::Type::MENU, Direction::DOWN, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
             }
             if ((*(current_entry - 1))->type == SidebarEntry::Type::MENU) {
                 current_menu = (Menu*) *(current_entry - 1);
                 if (!current_menu->y_offset)
                     current_menu->y_offset = -1 * current_menu->height;
                 visible_menus.insert(current_menu);
-                this->add_shift(Shift::Type::MENU, Direction::DOWN, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
+                add_shift(Shift::Type::MENU, Direction::DOWN, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
             }
             else {
                 current_menu = NULL;
@@ -878,12 +878,12 @@ void Layout::move_up()
         if (current_menu->shift_count && current_menu->row == current_menu->shift_count) {
             
             // Shift rows down
-            this->add_shift(Shift::Type::MENU, Direction::DOWN, card_y_advance, ROW_SHIFT_TIME, current_menu);
+            add_shift(Shift::Type::MENU, Direction::DOWN, card_y_advance, ROW_SHIFT_TIME, current_menu);
             current_menu->shift_count--;
         }
         
         else {
-            this->add_shift(Shift::Type::HIGHLIGHT, Direction::UP, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, NULL);
+            add_shift(Shift::Type::HIGHLIGHT, Direction::UP, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, NULL);
         }
         current_menu->current_entry -= 3;
         current_menu->row--;
@@ -900,14 +900,14 @@ void Layout::move_down()
 
             // Shift menus if necessary
             if (current_menu != NULL) {
-                this->add_shift(Shift::Type::MENU, Direction::UP, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
+                add_shift(Shift::Type::MENU, Direction::UP, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
             }
             if ((*(current_entry + 1))->type == SidebarEntry::Type::MENU) {
                 current_menu = (Menu*) *(current_entry + 1);
                 if (!current_menu->y_offset)
                     current_menu->y_offset = current_menu->height;
                 visible_menus.insert(current_menu);
-                this->add_shift(Shift::Type::MENU, Direction::UP, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
+                add_shift(Shift::Type::MENU, Direction::UP, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
             }
             else {
                 current_menu = NULL;
@@ -925,7 +925,7 @@ void Layout::move_down()
 
         // Shift sidebar
         if (max_sidebar_entries != -1 && sidebar_pos < (num_sidebar_entries - max_sidebar_entries)) {
-            this->add_shift(Shift::Type::SIDEBAR, Direction::UP, sidebar_y_advance, SIDEBAR_SHIFT_TIME, NULL);
+            add_shift(Shift::Type::SIDEBAR, Direction::UP, sidebar_y_advance, SIDEBAR_SHIFT_TIME, NULL);
             sidebar_shift_count++;
         }
     }
@@ -936,11 +936,11 @@ void Layout::move_down()
 
             if (current_menu->total_rows > max_rows && 
             current_menu->row + current_menu->shift_count < (current_menu->total_rows - 2)) {
-                this->add_shift(Shift::Type::MENU, Direction::UP, card_y_advance, ROW_SHIFT_TIME, current_menu);
+                add_shift(Shift::Type::MENU, Direction::UP, card_y_advance, ROW_SHIFT_TIME, current_menu);
                 current_menu->shift_count++;
             }
             else {
-                this->add_shift(Shift::Type::HIGHLIGHT, Direction::DOWN, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, NULL);
+                add_shift(Shift::Type::HIGHLIGHT, Direction::DOWN, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, NULL);
             }
 
             current_menu->current_entry += COLUMNS;
@@ -968,14 +968,14 @@ void Layout::move_left()
                 // Reset menu shift
                 if (current_menu->shift_count) {
                     int shift_amount = current_menu->shift_count*card_y_advance;
-                    this->add_shift(Shift::Type::MENU, Direction::DOWN, shift_amount, HIGHLIGHT_SHIFT_TIME, current_menu);
+                    add_shift(Shift::Type::MENU, Direction::DOWN, shift_amount, HIGHLIGHT_SHIFT_TIME, current_menu);
                     current_menu->shift_count = 0;
                 }
             }
         }
         else {
             // Move highlight left
-            this->add_shift(Shift::Type::HIGHLIGHT, Direction::LEFT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
+            add_shift(Shift::Type::HIGHLIGHT, Direction::LEFT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
             current_menu->column--;
             current_menu->current_entry--;
             if (sound.connected)
@@ -1001,7 +1001,7 @@ void Layout::move_right()
         if(current_menu->column < max_columns - 1) {
             
             // Shift highlight right
-            this->add_shift(Shift::Type::HIGHLIGHT, Direction::RIGHT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
+            add_shift(Shift::Type::HIGHLIGHT, Direction::RIGHT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
 
             current_menu->column++;
             current_menu->current_entry++;
@@ -1119,7 +1119,7 @@ void Layout::shift()
 void Layout::update()
 {
     if (shift_queue.size())
-        this->shift();
+        shift();
 
     if (pressed_entry != NULL && pressed_entry->update()) {
         delete pressed_entry;

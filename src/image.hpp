@@ -1,5 +1,5 @@
-#ifndef HAS_IMAGE_H
-#define HAS_IMAGE_H
+#pragma once
+
 #include <string>
 #include <vector>
 #include "external/nanosvg.h"
@@ -21,25 +21,21 @@
 #define STR(x) (const char*) x.c_str()
 
 class Font {
+    private:
+        TTF_Font *font = nullptr;
+        SDL_Color color = { 0xFF, 0xFF, 0xFF, 0xFF };
+
     public:
-        Font();
-        ~Font();
         int load(const char *path, int height);
         SDL_Surface *render_text(const char *text, SDL_Rect *src_rect, SDL_Rect *dst_rect, int max_width);
-
-    private:
-        TTF_Font *font;
-        SDL_Color color;
 };
 
-typedef struct {
+struct BoxShadow{
     int x_offset;
     int y_offset;
     float radius;
     Uint8 alpha;
-} BoxShadow;
-
-
+};
 
 #define free_surface(s)               \
 if (s != NULL) {                      \
@@ -57,5 +53,3 @@ SDL_Surface *rasterize_svg_from_file(const std::string &file, int w, int h);
 SDL_Surface *rasterize_svg(const std::string &buffer, int w, int h);
 SDL_Surface *rasterize_svg_image(NSVGimage *image, int w, int h);
 SDL_Surface* create_shadow(SDL_Surface *in, const std::vector<BoxShadow> &box_shadows, int s_offset);
-
-#endif

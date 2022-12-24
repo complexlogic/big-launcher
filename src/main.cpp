@@ -67,12 +67,10 @@ void Display::init()
 
     // Force 16:9 aspect ratio
     float aspect_ratio = (float) width / (float) height;
-    if (aspect_ratio > DISPLAY_ASPECT_RATIO + DISPLAY_ASPECT_RATIO_TOLERANCE) {
+    if (aspect_ratio > DISPLAY_ASPECT_RATIO + DISPLAY_ASPECT_RATIO_TOLERANCE)
         width = (int) std::round((float) height * DISPLAY_ASPECT_RATIO);
-    }
-    if (aspect_ratio < DISPLAY_ASPECT_RATIO - DISPLAY_ASPECT_RATIO_TOLERANCE) {
+    if (aspect_ratio < DISPLAY_ASPECT_RATIO - DISPLAY_ASPECT_RATIO_TOLERANCE)
         height = (int) std::round((float) width / DISPLAY_ASPECT_RATIO);
-    }
 
     // Initialize SDL_image
     constexpr int flags = IMG_INIT_PNG | IMG_INIT_JPG | IMG_INIT_WEBP; 
@@ -221,13 +219,11 @@ void Gamepad::connect(int device_index, bool raise_error)
     spdlog::debug("Sucessfully connected to gamepad");
     if (config.debug && raise_error) {
         char *mapping = SDL_GameControllerMappingForDeviceIndex(device_index);
-        if (mapping == NULL) {
+        if (mapping == NULL)
             spdlog::debug("Could not get mapping");
-        }
-        else {
+        else
             spdlog::debug("Gamepad mapping: {}", mapping);
             SDL_free(mapping);
-        }
     }
 }
 
@@ -321,20 +317,16 @@ void Gamepad::poll()
             // Determine direction of stick movement
             StickDirection direction;
             if (max_axis == AXIS_X) {
-                if (axis_values[stick.type][AXIS_X] < 0) {
+                if (axis_values[stick.type][AXIS_X] < 0)
                     direction = DIRECTION_XM;
-                }
-                else {
+                else
                     direction = DIRECTION_XP;
-                }
             }
             else if (max_axis == AXIS_Y) {
-                if (axis_values[stick.type][AXIS_Y] < 0) {
+                if (axis_values[stick.type][AXIS_Y] < 0)
                     direction = DIRECTION_YM;
-                }
-                else {
+                else
                     direction = DIRECTION_YP;
-                }
             }
 
             // Save set selected axis if stick press is within range of a control
@@ -359,20 +351,17 @@ void Gamepad::poll()
                 control.repeat++;
                 selected_axis = NULL;
             }
-            else {
+            else
                 control.repeat = 0;
-            }
         }
 
         // Poll buttons
         else {
             if ((control.type == TYPE_BUTTON && SDL_GameControllerGetButton(controller, (SDL_GameControllerButton) control.index)) ||
-            (control.type == TYPE_TRIGGER && SDL_GameControllerGetAxis(controller, (SDL_GameControllerAxis) control.index) > GAMEPAD_DEADZONE)) {
+            (control.type == TYPE_TRIGGER && SDL_GameControllerGetAxis(controller, (SDL_GameControllerAxis) control.index) > GAMEPAD_DEADZONE))
                 control.repeat++;
-            }
-            else {
+            else
                 control.repeat = 0;
-            }
         }
 
         if (control.repeat == 1) {
@@ -458,9 +447,8 @@ static inline void parse_render_resolution(const char *string, int &w, int &h)
     }
     w = std::atoi(s.substr(0, x).c_str());
     h = std::atoi(s.substr(x + 1, s.size() - x).c_str());
-    if (!w || !h) {
+    if (!w || !h)
         spdlog::error("Invalid resolution argument '{}'", string);
-    }
 }
 #endif
 
@@ -472,38 +460,28 @@ void execute_command(const std::string &command)
             size_t space = command.find_first_of(' ');
             if (space != std::string::npos) {
                 size_t cmd_begin = command.find_first_not_of(' ', space);
-                if (cmd_begin != std::string::npos) {
+                if (cmd_begin != std::string::npos)
                     start_process(command.substr(cmd_begin, command.size() - cmd_begin), false);
-                }
             }
         }
-        else if (command == ":left") {
+        else if (command == ":left")
             layout.move_left();
-        }
-        else if (command == ":right") {
+        else if (command == ":right")
             layout.move_right();
-        }
-        else if (command == ":up") {
+        else if (command == ":up")
             layout.move_up();
-        }
-        else if (command == ":down") {
+        else if (command == ":down")
             layout.move_down();
-        }
-        else if (command == ":select") {
+        else if (command == ":select")
             layout.select();
-        }
-        else if (command == ":shutdown") {
+        else if (command == ":shutdown")
             scmd_shutdown();
-        }
-        else if (command == ":restart") {
+        else if (command == ":restart")
             scmd_restart();
-        }
-        else if (command == ":sleep") {
+        else if (command == ":sleep")
             scmd_sleep();
-        }
-        else if (command == ":quit") {
+        else if (command == ":quit")
             quit(EXIT_SUCCESS);
-        }
     }
 
     // Application launching
@@ -514,9 +492,8 @@ void execute_command(const std::string &command)
             spdlog::debug("Successfully executed command");
             ticks.application_launch = ticks.main;
         }
-        else {
+        else
             spdlog::error("Failed to execute command");
-        }
     }
 }
 
@@ -635,12 +612,10 @@ int main(int argc, char *argv[])
     config.parse(config_path, gamepad, hotkey_list);
     display.init();
     init_svg();
-    if (config.sound_enabled && sound.init()) {
+    if (config.sound_enabled && sound.init())
         config.sound_enabled = false;
-    }
-    if (config.gamepad_enabled && gamepad.init()) {
+    if (config.gamepad_enabled && gamepad.init())
         config.gamepad_enabled = false;
-    }
 
 #ifdef DEBUG
     int render_w = 0;
@@ -671,9 +646,8 @@ int main(int argc, char *argv[])
         );
     }
 #else
-    if (display.dm.w != display.width || display.dm.h != display.height) {
+    if (display.dm.w != display.width || display.dm.h != display.height)
         SDL_RenderSetLogicalSize(display.renderer, display.width, display.height);
-    }
 #endif
 
     // Main program loop
@@ -690,28 +664,22 @@ int main(int argc, char *argv[])
 
                 case SDL_KEYDOWN:
                     if (!state.application_launching) {
-                        if (event.key.keysym.sym == SDLK_DOWN) {
+                        if (event.key.keysym.sym == SDLK_DOWN)
                             layout.move_down();
-                        }
-                        else if (event.key.keysym.sym == SDLK_UP) {
+                        else if (event.key.keysym.sym == SDLK_UP)
                             layout.move_up();
-                        }
-                        else if (event.key.keysym.sym == SDLK_LEFT) {
+                        else if (event.key.keysym.sym == SDLK_LEFT)
                             layout.move_left();
-                        }
-                        else if (event.key.keysym.sym == SDLK_RIGHT) {
+                        else if (event.key.keysym.sym == SDLK_RIGHT)
                             layout.move_right();
-                        }
-                        else if (event.key.keysym.sym == SDLK_RETURN) {
+                        else if (event.key.keysym.sym == SDLK_RETURN)
                             layout.select();
-                        }
 
                         // Check hotkeys
                         else {
                             for (Hotkey &hotkey : hotkey_list) {
-                                if (hotkey.keycode == event.key.keysym.sym) {
+                                if (hotkey.keycode == event.key.keysym.sym)
                                     execute_command(hotkey.command);
-                                } 
                             }
                         }
                         ticks.last_input = ticks.main;
@@ -730,9 +698,8 @@ int main(int argc, char *argv[])
                         if (event.jdevice.which == config.gamepad_index)
                             gamepad.connect(event.jdevice.which, true);
                     }
-                    else if (config.debug) {
+                    else if (config.debug)
                         spdlog::debug("Unrecognized joystick detected at device index {}", event.jdevice.which);
-                    }
                     break;
 
                 case SDL_JOYDEVICEREMOVED:
@@ -773,12 +740,10 @@ int main(int argc, char *argv[])
         ticks.main - ticks.application_launch > APPLICATION_TIMEOUT) {
             state.application_launching = false;
         }
-        if (state.application_running) {
+        if (state.application_running)
             SDL_Delay(APPLICATION_WAIT_PERIOD);
-        }
-        else {
+        else
             layout.draw();
-        }
     }
     return 0;
 }

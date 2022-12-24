@@ -44,9 +44,8 @@ SDL_Surface *load_surface(std::string &file)
         SDL_BlitSurface(img, NULL, out, NULL);
         free_surface(img);
     }
-    else {
+    else
         out = img;
-    }
 
     return out;
 }
@@ -138,23 +137,6 @@ SDL_Surface *rasterize_svg_image(NSVGimage *image, int w, int h)
     return surface;
 }
 
-Font::Font()
-{
-    font = NULL;
-    color = {0xFF, 0xFF, 0xFF, 0xFF};
-}
-
-Font::~Font()
-{
-    /*
-    if (font != NULL) {
-        TTF_CloseFont(font);
-        font = NULL;
-    }
-    */
-}
-
-
 int Font::load(const char *file, int height)
 {
     std::string font_path;
@@ -176,7 +158,7 @@ SDL_Surface *Font::render_text(const char *text, SDL_Rect *src_rect, SDL_Rect *d
     SDL_Surface *surface = NULL;
     int width;
     static std::string truncated_text;
-    char *out_text = (char*) text;
+    char *out_text = const_cast<char*>(text);
     TTF_SizeUTF8(font, text, &width, NULL);
     if (width > max_width) {
         utf8_truncate(text, truncated_text, width, max_width);

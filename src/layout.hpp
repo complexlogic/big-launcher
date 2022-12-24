@@ -71,7 +71,7 @@ class Entry {
         CardType card_type;
         std::string title;
         std::string command;
-        SDL_Color background_color { 0xFF };
+        SDL_Color background_color { 0xFF, 0xFF, 0xFF, 0xFF };
         std::string path; // doubles for both card path and background in generated mode
         std::string icon_path;
 
@@ -254,13 +254,13 @@ class Layout {
         void add_entry();
         void load_surfaces(int screen_width, int screen_height);
         void load_textures(SDL_Renderer *renderer);
-        void update(void);
+        void update();
         void draw();
         void move_down();
         void move_up();
         void move_left();
         void move_right();
-        void select(void);
+        void select();
         void add_shift(Shift::Type type, Direction direction, int target, float time, Menu *menu);
         void shift();
 };

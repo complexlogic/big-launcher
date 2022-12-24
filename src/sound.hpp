@@ -1,5 +1,4 @@
-#ifndef HAS_SOUND_H
-#define HAS_SOUND_H
+#pragma once
 
 #include <SDL_mixer.h>
 
@@ -39,5 +38,3 @@ class Sound {
         void play_select();
 
 };
-
-#endif

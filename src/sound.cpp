@@ -22,9 +22,8 @@ SoundBite::SoundBite()
 void SoundBite::free_chunk()
 {
     if (chunk != NULL) {
-        if (!chunk->allocated) {
+        if (!chunk->allocated)
             free(chunk->abuf);
-        }
         Mix_FreeChunk(chunk);
     }
 }
@@ -92,21 +91,18 @@ int Sound::connect()
     // Load audio if needed
     if (click.frequency != frequency || click.channels != channels) {
         click.free_chunk();
-        if (click.load(click_path, frequency, channels)) {
+        if (click.load(click_path, frequency, channels))
             return 1;
-        }
     }
     if (select.frequency != frequency || select.channels != channels) {
         select.free_chunk();
-        if (select.load(select_path, frequency, channels)) {
+        if (select.load(select_path, frequency, channels))
             return 1;
-        }
     }
 
     // Set volume
-    if (config.sound_volume != MAX_VOLUME) {
+    if (config.sound_volume != MAX_VOLUME)
         this->set_volume(0, config.sound_volume);
-    }
 
     spdlog::debug("Successfully opened {} channel audio at {} Hz", channels, frequency);
     return 0;
@@ -123,9 +119,8 @@ int Sound::set_volume(int channel, int volume)
         std::array<int, MAX_VOLUME + 1> arr;
         arr[0] = 0;
         arr[MAX_VOLUME] = MIX_MAX_VOLUME;
-        for (int n = 1; n < MAX_VOLUME; n++) {
+        for (int n = 1; n < MAX_VOLUME; n++)
             arr[n] = (int) std::round(a * pow(10.f, (double) n * b) * (double) MIX_MAX_VOLUME);
-        }
         return arr;
     };
     static constexpr std::array<int, MAX_VOLUME + 1> volume_array = generate_array();

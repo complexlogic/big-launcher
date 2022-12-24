@@ -1,5 +1,5 @@
-#ifndef HAS_SCREENSAVER_H
-#define HAS_SCREENSAVER_H
+#pragma once
+
 #define SCREENSAVER_TRANSITION_TIME 2000
 
 #define MIN_SCREENSAVER_IDLE_TIME 5
@@ -7,21 +7,18 @@
 
 class Screensaver {
     private:
-        float opacity;
+        float opacity = 0.f;
         float opacity_change_rate;
-        SDL_Surface *surface;
+        SDL_Surface *surface = nullptr;
         Uint32 current_ticks;
     
     public:
-        bool active;
-        bool transitioning;
-        SDL_Texture *texture;
+        bool active = false;
+        bool transitioning = false;
+        SDL_Texture *texture = nullptr;
 
-        Screensaver() : active(false), transitioning(false), opacity(0.f), surface(NULL), texture(NULL) {};
         void render_surface(int w, int h);
         void render_texture(SDL_Renderer *renderer);
         void update(void);
 
 };
-
-#endif

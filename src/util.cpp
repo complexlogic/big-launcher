@@ -1,6 +1,8 @@
 #include <filesystem>
 #include <span>
 #include <initializer_list>
+#include <string>
+#include <string_view>
 #include <string.h>
 #include <SDL.h>
 #include <fmt/core.h>
@@ -17,22 +19,6 @@ extern "C" int handler(void* user, const char* section, const char* name, const 
 extern Config config;
 extern char *executable_dir;
 
-Config::Config()
-{
-    debug = false;
-    sidebar_highlight_color = {0x00, 0x00, 0xFF, 0xFF};
-    sidebar_text_color = {0xFF, 0xFF, 0xFF, 0xFF};
-    sidebar_text_color_highlighted = {0xFF, 0xFF, 0xFF, 0xFF};
-    menu_highlight_color = {0xFF, 0xFF, 0xFF, 0xFF};
-    mouse_select = false;
-    sound_enabled = false;
-    sound_volume = MAX_VOLUME;
-
-    screensaver_enabled = false;
-    screensaver_idle_time = 900000;
-    screensaver_intensity = 170;
-}
-
 void Config::parse(const std::string &file, Gamepad &gamepad, HotkeyList &hotkey_list)
 {
     ConfigInfo info = {gamepad, hotkey_list};
@@ -46,28 +32,24 @@ void Config::parse(const std::string &file, Gamepad &gamepad, HotkeyList &hotkey
 
 void Config::add_bool(const char *value, bool &out)
 {
-    if (MATCH(value, "true") || MATCH(value, "True")) {
+    if (MATCH(value, "true") || MATCH(value, "True"))
         out = true;
-    }
-    else if (MATCH(value, "false") || MATCH(value, "False")) {
+    else if (MATCH(value, "false") || MATCH(value, "False"))
         out = false;
-    }
 }
 
 void Config::add_int(const char *value, int &out)
 {
     int x = std::stoi(value);
-    if (x || *value == '0') {
+    if (x || *value == '0')
         out = x;
-    }
 }
 
 void Config::add_time(const char *value, Uint32 &out, Uint32 min, Uint32 max)
 {
     int x = std::stoi(value) * 1000;
-    if ((x || *value == '0') && x >= min && x <=max) {
+    if ((x || *value == '0') && x >= min && x <= max)
         out = x;
-    }
 }
 
 void Config::add_path(const char *value, std::string &out)
@@ -75,9 +57,8 @@ void Config::add_path(const char *value, std::string &out)
     out = value;
 
     // Remove double quotes
-    if (*out.begin() == '"' && *(out.end() - 1) == '"') {
+    if (*out.begin() == '"' && *(out.end() - 1) == '"')
         out = out.substr(1, out.size() - 2);
-    }
 }
 
 template <typename T>
@@ -100,46 +81,35 @@ void Config::add_percent(const char *value, T &out, T ref, float min, float max)
 int handler(void* user, const char* section, const char* name, const char* value)
 {
     if (MATCH(section, "Settings")) {
-        if (MATCH(name, "MouseSelect")) {
+        if (MATCH(name, "MouseSelect"))
             config.add_bool(value, config.mouse_select);
-        }
-        else if (MATCH(name, "SidebarHighlightColor")) {
+        else if (MATCH(name, "SidebarHighlightColor"))
             hex_to_color(value, config.sidebar_highlight_color);
-        }
-        else if (MATCH(name, "SidebarTextColor")) {
+        else if (MATCH(name, "SidebarTextColor"))
             hex_to_color(value, config.sidebar_text_color);
-        }
-        else if (MATCH(name, "SidebarTextSelectedColor")) {
+        else if (MATCH(name, "SidebarTextSelectedColor"))
             hex_to_color(value, config.sidebar_text_color_highlighted);
-        }
-        else if (MATCH(name, "MenuHighlightColor")) {
+        else if (MATCH(name, "MenuHighlightColor"))
             hex_to_color(value, config.menu_highlight_color);
-        }
 
-        else if (MATCH(name, "BackgroundImage")) {
+        else if (MATCH(name, "BackgroundImage"))
             config.add_path(value, config.background_image_path);
-        }
     }
 
     else if (MATCH(section, "Sound")) {
-        if (MATCH(name, "Enabled")) {
+        if (MATCH(name, "Enabled"))
             config.add_bool(value, config.sound_enabled);
-        }
-        else if (MATCH(name, "Volume")) {
+        else if (MATCH(name, "Volume"))
             config.add_int(value, config.sound_volume);
-        }
     }
 
     else if (MATCH(section, "Screensaver")) {
-        if (MATCH(name, "Enabled")) {
+        if (MATCH(name, "Enabled"))
             config.add_bool(value, config.screensaver_enabled);
-        }
-        else if (MATCH(name, "IdleTime")) {
+        else if (MATCH(name, "IdleTime"))
             config.add_time(value, config.screensaver_idle_time, MIN_SCREENSAVER_IDLE_TIME, MAX_SCREENSAVER_IDLE_TIME);
-        }
-        else if (MATCH(name, "Intensity")) {
+        else if (MATCH(name, "Intensity"))
             config.add_percent<Uint8>(value, config.screensaver_intensity, 255, 0.1f, 1.f);
-        }
     }
 
     else if (MATCH(section, "Hotkeys")) {
@@ -148,15 +118,12 @@ int handler(void* user, const char* section, const char* name, const char* value
     }
 
     else if (MATCH(section, "Gamepad")) {
-        if (MATCH(name, "Enabled")) {
+        if (MATCH(name, "Enabled"))
             config.add_bool(value, config.gamepad_enabled);
-        }
-        else if (MATCH(name, "DeviceIndex")) {
+        else if (MATCH(name, "DeviceIndex"))
             config.add_int(value, config.gamepad_index);
-        }
-        else if (MATCH(name, "MappingsFile")) {
+        else if (MATCH(name, "MappingsFile"))
             config.add_path(value, config.gamepad_mappings_file);
-        }
         else {
             ConfigInfo *info = (ConfigInfo*) user;
             info->gamepad.add_control(name, value);
@@ -167,36 +134,30 @@ int handler(void* user, const char* section, const char* name, const char* value
 
 
 // Calculates the length of a utf-8 encoded C-style string
-int utf8_length(const char *string)
+int utf8_length(std::string_view string)
 {
     int length = 0;
-    char *ptr = (char*) string;
-    while (*ptr != '\0') {
-        // If byte is 0xxxxxxx, then it's a 1 byte (ASCII) char
-        if ((*ptr & 0x80) == 0) {
-            ptr++;
-        }
-        // If byte is 110xxxxx, then it's a 2 byte char
-        else if ((*ptr & 0xE0) == 0xC0) {
-            ptr +=2;
-        }
-        // If byte is 1110xxxx, then it's a 3 byte char
-        else if ((*ptr & 0xF0) == 0xE0) {
-            ptr +=3;
-        }
-        // If byte is 11110xxx, then it's a 4 byte char
-        else if ((*ptr & 0xF8) == 0xF0) {
-            ptr+=4;
-        }
-    length++;
+    auto it = string.cbegin();
+    while (it < string.cend()) {
+        if ((*it & 0x80) == 0) // If byte is 0xxxxxxx, then it's a 1 byte (ASCII) char
+            it++;
+        else if ((*it & 0xE0) == 0xC0) // If byte is 110xxxxx, then it's a 2 byte char
+            it +=2;
+        else if ((*it & 0xF0) == 0xE0) // If byte is 1110xxxx, then it's a 3 byte char
+            it +=3;
+        else if ((*it & 0xF8) == 0xF0) // If byte is 11110xxx, then it's a 4 byte char
+            it+=4;
+
+        length++;
     }
     return length;
 }
 
 // A function to extract the Unicode code point from the first character in a UTF-8 encoded C-style string
-Uint16 get_unicode_code_point(const char *p, int &bytes)
+Uint16 get_unicode_code_point(std::string_view string, int &bytes)
 {
     Uint16 result;
+    auto p = string.begin();
 
     // 1 byte ASCII char
     if ((*p & 0x80) == 0) {
@@ -240,9 +201,8 @@ void utf8_truncate(const char *string, std::string &truncated_text, int width, i
     // Go back required number of spaces
     do {
         ptr--;
-        if (!(*ptr & 0x80)) { // ASCII characters have 0 as most significant bit
+        if (!(*ptr & 0x80)) // ASCII characters have 0 as most significant bit
             chars++;
-        }
         else { // Non-ASCII character detected
             do {
                 ptr--;
@@ -256,20 +216,16 @@ void utf8_truncate(const char *string, std::string &truncated_text, int width, i
 }
 
 // A function to convert a hex-formatted string into a color struct
-bool hex_to_color(const char *string, SDL_Color &color)
+bool hex_to_color(std::string_view string, SDL_Color &color)
 {
-    if (*string != '#')
+    auto it = string.cbegin();
+    if (*it != '#' || string.size() != 7)
         return false;
-    char *p = (char*) string + 1;
+    it++;
 
-    // If strtoul returned 0, and the hex string wasn't 000..., then there was an error
-    int length = strlen(p);
-    if (length != 6)
+    Uint32 hex = (Uint32) strtoul(it, NULL, 16);
+    if (!hex && strcmp(it, "000000"))
         return false;
-    Uint32 hex = (Uint32) strtoul(p, NULL, 16);
-    if (!hex && strcmp(p,"000000")) {
-        return false;
-    }
 
     color.r = (Uint8) (hex >> 16);
     color.g = (Uint8) ((hex & 0x0000ff00) >> 8);
