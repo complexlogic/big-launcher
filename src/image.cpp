@@ -153,20 +153,18 @@ int Font::load(const char *file, int height)
     return 0;
 }
 
-SDL_Surface *Font::render_text(const char *text, SDL_Rect *src_rect, SDL_Rect *dst_rect, int max_width)
+SDL_Surface *Font::render_text(const std::string &text, SDL_Rect *src_rect, SDL_Rect *dst_rect, int max_width)
 {
     SDL_Surface *surface = NULL;
     int width;
-    static std::string truncated_text;
-    char *out_text = const_cast<char*>(text);
-    TTF_SizeUTF8(font, text, &width, NULL);
-    if (width > max_width) {
-        utf8_truncate(text, truncated_text, width, max_width);
-        out_text = truncated_text.data();
-    }
+    std::string truncated_text;
+    TTF_SizeUTF8(font, text.c_str(), &width, NULL);
+    if (width > max_width)
+        truncated_text = utf8_truncate(text, width, max_width);
+    const std::string &out_text = truncated_text.empty() ? text : truncated_text;
 
-    surface = TTF_RenderUTF8_Blended(font, out_text, color);
-    if (surface == NULL) {
+    surface = TTF_RenderUTF8_Blended(font, out_text.c_str(), color);
+    if (!surface) {
         spdlog::error("Could not render text '{}'", text);
         return surface;
     } 
@@ -176,8 +174,8 @@ SDL_Surface *Font::render_text(const char *text, SDL_Rect *src_rect, SDL_Rect *d
         int y_dsc_max = 0;
         int y_asc, y_dsc;
         int bytes = 0;
-        char *p = out_text;
         Uint16 code_point;
+        char *p = const_cast<char*>(out_text.data());
         while (*p != '\0') {
             code_point = get_unicode_code_point(p, bytes);
             TTF_GlyphMetrics(font, 

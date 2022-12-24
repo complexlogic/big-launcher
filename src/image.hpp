@@ -27,7 +27,7 @@ class Font {
 
     public:
         int load(const char *path, int height);
-        SDL_Surface *render_text(const char *text, SDL_Rect *src_rect, SDL_Rect *dst_rect, int max_width);
+        SDL_Surface *render_text(const std::string &text, SDL_Rect *src_rect, SDL_Rect *dst_rect, int max_width);
 };
 
 struct BoxShadow{
@@ -47,8 +47,8 @@ if (s != NULL) {                      \
 }
 
 SDL_Surface *load_surface(std::string &file);
-int init_svg(void);
-void quit_svg(void);
+int init_svg();
+void quit_svg();
 SDL_Surface *rasterize_svg_from_file(const std::string &file, int w, int h);
 SDL_Surface *rasterize_svg(const std::string &buffer, int w, int h);
 SDL_Surface *rasterize_svg_image(NSVGimage *image, int w, int h);

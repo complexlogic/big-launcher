@@ -49,8 +49,8 @@ struct Config {
 };
 
 int utf8_length(std::string_view string);
-Uint16 get_unicode_code_point(std::string_view string, int &bytes);
-void utf8_truncate(const char *string, std::string &truncated_text, int width, int max_width);
+Uint16 get_unicode_code_point(const char *p, int &bytes);
+std::string utf8_truncate(const std::string &string, int width, int max_width);
 bool hex_to_color(std::string_view string, SDL_Color &color);
 void join_paths(std::string &out, std::initializer_list<const char*> list);
 template <FileType file_type>

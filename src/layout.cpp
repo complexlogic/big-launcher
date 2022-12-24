@@ -695,17 +695,15 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     int max_sidebar_text_width = sidebar_width - 2 * sidebar_text_margin;
     int y = sidebar_highlight.rect.y + sidebar_highlight.h / 2 + sidebar_highlight.shadow_offset;
     for (int i = 0; SidebarEntry *entry : list) {
-        entry->surface = sidebar_font.render_text(entry->title.c_str(), 
+        entry->surface = sidebar_font.render_text(entry->title, 
                              &entry->src_rect, 
                              &entry->dst_rect,
                              max_sidebar_text_width
                          );
         entry->dst_rect.x = sidebar_text_x;
         entry->dst_rect.y = y - entry->dst_rect.h / 2;
-        if (max_sidebar_entries == -1 && 
-        entry->dst_rect.y + entry->dst_rect.h > y_max) {
+        if (max_sidebar_entries == -1 && entry->dst_rect.y + entry->dst_rect.h > y_max)
             max_sidebar_entries = i - 1;
-        }
         y += sidebar_y_advance;
         i++;
     }

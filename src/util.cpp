@@ -154,10 +154,9 @@ int utf8_length(std::string_view string)
 }
 
 // A function to extract the Unicode code point from the first character in a UTF-8 encoded C-style string
-Uint16 get_unicode_code_point(std::string_view string, int &bytes)
+Uint16 get_unicode_code_point(const char *p, int &bytes)
 {
     Uint16 result;
-    auto p = string.begin();
 
     // 1 byte ASCII char
     if ((*p & 0x80) == 0) {
@@ -189,13 +188,13 @@ Uint16 get_unicode_code_point(std::string_view string, int &bytes)
 }
 
 // A function to truncate a utf-8 encoded string to max number of pixels
-void utf8_truncate(const char *string, std::string &truncated_text, int width, int max_width)
+std::string utf8_truncate(const std::string &string, int width, int max_width)
 {
     int string_length = utf8_length(string);
     int avg_width = width / string_length;
     int num_chars = max_width / avg_width;
     int spaces = (string_length - num_chars) + 3; // Number of spaces to go back
-    char *ptr = (char*) string + strlen(string); // Change to null character of string
+    auto ptr = string.cend();
     int chars = 0;
 
     // Go back required number of spaces
@@ -206,13 +205,13 @@ void utf8_truncate(const char *string, std::string &truncated_text, int width, i
         else { // Non-ASCII character detected
             do {
                 ptr--;
-            } while (ptr > string && (*ptr & 0xC0) == 0x80); // Non-ASCII most significant byte begins with 0b11
+            } while (ptr > string.begin() && (*ptr & 0xC0) == 0x80); // Non-ASCII most significant byte begins with 0b11
             chars++;
         }
     } while (chars < spaces);
 
     // Add "..." to end of string to inform user of truncation
-    truncated_text = std::string(string, 0, (ptr - string)) + "...";
+    return std::string(string, 0, (ptr - string.cbegin())) + "...";
 }
 
 // A function to convert a hex-formatted string into a color struct
