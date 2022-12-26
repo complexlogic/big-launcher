@@ -38,6 +38,7 @@
 #define CARD_ASPECT_RATIO 1.33333333F
 #define CARD_ICON_MARGIN 0.12F
 #define MAX_CARD_ICON_MARGIN 0.2f
+#define ERROR_ICON_MARGIN 0.35F
 
 // Menu highlight geometry
 #define HIGHLIGHT_THICKNESS 0.5f
@@ -81,6 +82,7 @@ class Entry {
         SDL_Rect icon_rect;
         float icon_margin = CARD_ICON_MARGIN;
         SDL_Texture *texture = nullptr;
+        bool card_error = false;
 
         Entry(const char *title, const char *command) : title(title), command(command) {}
         void add_card(const char *path);
@@ -139,7 +141,7 @@ class Menu : public SidebarEntry {
         int parse(xmlNodePtr node);
         void add_entry(xmlNodePtr node);
         size_t num_entries();
-        void render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, int h, int x_start, int y_start, int spacing, int screen_height);
+        bool render_surfaces(int shadow_offset, int w, int h, int x_start, int y_start, int spacing, int screen_height);
         void render_card_textures(SDL_Renderer *renderer, SDL_Texture *card_shadow_texture, int shadow_offset, int card_w, int card_h);
         void draw_entries(SDL_Renderer *renderer, int y_min, int y_max);
         void print_entries();
@@ -208,6 +210,12 @@ class Layout {
         SDL_Surface *background_surface = nullptr;
         SDL_Texture *background_texture = nullptr;
 
+        bool card_error = false;
+        SDL_Surface *error_bg = nullptr;
+        SDL_Surface *error_icon = nullptr;
+        SDL_Rect error_icon_rect;
+        SDL_Texture *error_texture = nullptr;
+
         // States
         std::vector<Shift> shift_queue;
         std::set<Menu*> visible_menus;
@@ -254,6 +262,8 @@ class Layout {
         void add_entry();
         void load_surfaces(int screen_width, int screen_height);
         void load_textures(SDL_Renderer *renderer);
+        void render_error_surface();
+        void render_error_texture();
         void update();
         void draw();
         void move_down();

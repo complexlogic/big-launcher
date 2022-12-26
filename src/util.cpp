@@ -226,10 +226,12 @@ bool hex_to_color(std::string_view string, SDL_Color &color)
     if (!hex && strcmp(it, "000000"))
         return false;
 
-    color.r = (Uint8) (hex >> 16);
-    color.g = (Uint8) ((hex & 0x0000ff00) >> 8);
-    color.b = (Uint8) (hex & 0x000000ff);
-    color.a = 0xFF;
+    color = {
+        (Uint8) (hex >> 16),
+        (Uint8) ((hex & 0x0000ff00) >> 8),
+        (Uint8) (hex & 0x000000ff),
+        0xFF
+    };
     return true;
 }
 

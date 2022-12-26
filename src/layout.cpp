@@ -88,10 +88,9 @@ void Entry::add_margin(const char *value)
 
 int Menu::parse(xmlNodePtr node)
 {
-    for (node = node->xmlChildrenNode; node != NULL; node = node->next) {
-        if (!xmlStrcmp(node->name, (const xmlChar*) "entry")) {
+    for (node = node->xmlChildrenNode; node != nullptr; node = node->next) {
+        if (!xmlStrcmp(node->name, (const xmlChar*) "entry"))
             add_entry(node);
-        }
     }
     int num_entries = entry_list.size();
     if (!num_entries)
@@ -109,29 +108,28 @@ int Menu::parse(xmlNodePtr node)
 void Menu::add_entry(xmlNodePtr node)
 {
     xmlChar *entry_title = xmlGetProp(node, (const xmlChar*) "title");
-    if (entry_title == NULL) {
+    if (entry_title == nullptr) {
         spdlog::error("'menu' element in line {} is missing 'title' attribute", node->line);
         return;
     }
     
-    xmlNodePtr cmd_node = NULL;
-    xmlNodePtr card_node = NULL;
+    xmlNodePtr cmd_node = nullptr;
+    xmlNodePtr card_node = nullptr;
 
     // Get location of command and card elements
-    for (xmlNodePtr current_node = node->xmlChildrenNode; current_node != NULL; current_node = current_node->next) {
-        if (!xmlStrcmp(current_node->name, (const xmlChar*) "command") && cmd_node == NULL) {
+    for (xmlNodePtr current_node = node->xmlChildrenNode; current_node != nullptr; current_node = current_node->next) {
+        if (!xmlStrcmp(current_node->name, (const xmlChar*) "command") && cmd_node == nullptr)
             cmd_node = current_node;
-        }
-        else if (!xmlStrcmp(current_node->name, (const xmlChar*) "card") && card_node == NULL) {
+        else if (!xmlStrcmp(current_node->name, (const xmlChar*) "card") && card_node == nullptr)
             card_node = current_node;
-        }
     }
-    if (cmd_node == NULL) {
+
+    if (cmd_node == nullptr) {
         spdlog::error("Menu '{}': Entry '{}' is missing 'command' element", title, (const char*) entry_title);
         xmlFree(entry_title);
         return;
     }
-    if (card_node == NULL) {
+    if (card_node == nullptr) {
         spdlog::error("Menu '{}': Entry '{}' is missing 'card' element", title, (const char*) entry_title);
         xmlFree(entry_title);
         return;
@@ -139,7 +137,7 @@ void Menu::add_entry(xmlNodePtr node)
 
     // Parse command
     xmlChar *command = xmlNodeGetContent(cmd_node);
-    if (command == NULL) {
+    if (command == nullptr) {
         spdlog::error("Menu '{}', Entry '{}': element 'command' has no content", title, (const char*) entry_title);
         xmlFree(entry_title);
         return;
@@ -155,43 +153,40 @@ void Menu::add_entry(xmlNodePtr node)
     unsigned long child_count = xmlChildElementCount(card_node);
 
     // Custom card
-    if (content != NULL && !child_count) {
+    if (content != nullptr && !child_count)
         entry.add_card((const char*) content);
-    }
 
     // Generated card
     else if (child_count) {
-        xmlNodePtr icon_node = NULL;
-        xmlNodePtr background_node = NULL;
+        xmlNodePtr icon_node = nullptr;
+        xmlNodePtr background_node = nullptr;
 
         // Get icon and background elements
-        for (card_node = card_node->xmlChildrenNode; card_node != NULL; card_node = card_node->next) {
-            if (!xmlStrcmp(card_node->name, (const xmlChar*) "icon")) {
+        for (card_node = card_node->xmlChildrenNode; card_node != nullptr; card_node = card_node->next) {
+            if (!xmlStrcmp(card_node->name, (const xmlChar*) "icon"))
                 icon_node = card_node;
-            }
-            else if (!xmlStrcmp(card_node->name, (const xmlChar*) "background")) {
+            else if (!xmlStrcmp(card_node->name, (const xmlChar*) "background"))
                 background_node = card_node;
-            }
         }
 
-        if (icon_node == NULL || xmlChildElementCount(icon_node)) {
+        if (icon_node == nullptr || xmlChildElementCount(icon_node)) {
             spdlog::error("Menu '{}', Entry '{}': generated card is missing 'icon' element",title, entry.title);
             entry_list.pop_back();
             return;
         }
-        if (background_node != NULL && xmlChildElementCount(background_node))
-            background_node = NULL;
+        if (background_node != nullptr && xmlChildElementCount(background_node))
+            background_node = nullptr;
 
         // Get custom margin
         xmlChar *margin = xmlGetProp(icon_node, (const xmlChar*) "margin");
-        if (margin != NULL) {
+        if (margin != nullptr) {
             entry.add_margin((const char*) margin);
             xmlFree(margin);
         }
 
         xmlChar *icon = xmlNodeGetContent(icon_node);
-        xmlChar *background = (background_node == NULL) ? NULL : xmlNodeGetContent(background_node);
-        if (icon == NULL) {
+        xmlChar *background = (background_node == nullptr) ? nullptr : xmlNodeGetContent(background_node);
+        if (icon == nullptr) {
             spdlog::error("Menu '{}', Entry '{}': 'icon' element in generated card has no content", title, entry.title);
             xmlFree(icon);
             xmlFree(background);
@@ -201,19 +196,17 @@ void Menu::add_entry(xmlNodePtr node)
 
         SDL_Color color;
         bool is_color;
-        if (background == NULL) {
+        if (background == nullptr) {
             color = {0xFF, 0xFF, 0xFF, 0xFF};
             is_color = true;
         }
-        else {
+        else
             is_color = hex_to_color((char*) background, color);
-        }
-        if (is_color) {
+
+        if (is_color)
             entry.add_card(color, (const char*) icon);
-        }
-        else {
+        else
             entry.add_card((const char*) background, (const char*) icon);
-        }
     }
 }
 
@@ -223,7 +216,7 @@ inline size_t Menu::num_entries()
 }
 
 
-void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, int h, int x_start, int y_start, int spacing, int screen_height)
+bool Menu::render_surfaces(int shadow_offset, int w, int h, int x_start, int y_start, int spacing, int screen_height)
 {
     int column = 0;
     int x = x_start;
@@ -232,27 +225,39 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
     int y_advance = h + spacing;
     SDL_Surface *bg;
     SDL_Surface *icon;
+    bool ret = true;
 
     for (Entry &entry : entry_list) {
-        bg = NULL;
+        bg = nullptr;
 
+        // Custom card
         if (entry.card_type == Entry::CardType::CUSTOM) {
             entry.surface = (entry.path.ends_with(".svg")) 
                                  ? rasterize_svg_from_file(entry.path, w, h)
                                  : load_surface(entry.path);
+            if (!entry.surface) {
+                spdlog::error("Failed to load card '{}'", entry.path);
+                entry.card_error = true;
+                goto end;
+            }
         }
 
         // Generated card
         else {
-            icon = NULL;
+            icon = nullptr;
             if (!entry.path.empty()) {
                 bg = (entry.path.ends_with(".svg")) 
                         ? rasterize_svg_from_file(entry.path, w, h)
                         : load_surface(entry.path);
+                if (!bg) {
+                    spdlog::error("Failed to load card background '{}'", entry.path);
+                    entry.card_error = true;
+                    goto end;
+                }
             }
 
             // Color background
-            if (bg == NULL) {
+            if (bg == nullptr) {
                 bg = SDL_CreateRGBSurfaceWithFormat(0, 
                           w + shadow_offset, 
                           h + shadow_offset, 
@@ -265,29 +270,39 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
                                    entry.background_color.b, 
                                    entry.background_color.a
                                );
-                SDL_FillRect(bg, NULL, color);
+                SDL_FillRect(bg, nullptr, color);
             }
 
             // Calculate aspect ratio, load surface if non-SVG
             float f_w, f_h, aspect_ratio;
             bool svg = entry.icon_path.ends_with(".svg");
-            NSVGimage *image = NULL;
+            NSVGimage *image = nullptr;
             if (svg) {
                 image = nsvgParseFromFile((char*) entry.icon_path.c_str(), "px", 96.0f);
+                if (!image) {
+                    spdlog::error("Failed to load card icon '{}'", entry.icon_path);
+                    entry.card_error = true;
+                    goto end;
+                }
                 f_w = image->width;
                 f_h = image->height;
                 aspect_ratio = f_w / f_h;
             }
             else {
                 icon = load_surface(entry.icon_path);
-                if (icon != NULL) {
+                if (icon != nullptr) {
                     f_w = (float) icon->w;
                     f_h = (float) icon->h;
                     aspect_ratio = f_w / f_h;
                 }
+                else {
+                    spdlog::error("Failed to load card icon '{}'", entry.icon_path);
+                    entry.card_error = true;
+                    goto end;
+                }
             }
 
-            if (image != NULL || icon != NULL) {
+            if (image || icon) {
                 float target_w, target_h;
 
                 // Calculate icon dimensions
@@ -316,10 +331,22 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
                                entry.icon_rect.w, 
                                entry.icon_rect.h
                            );
+                    if (!icon) {
+                        spdlog::error("Failed to load card icon '{}'", entry.icon_path);
+                        entry.card_error = true;
+                        goto end;
+                    }
                 }
                 entry.icon_surface = icon;
             }
             entry.surface = bg;
+        }
+
+end:
+        if (entry.card_error) {
+            ret = false;
+            free_surface(bg);
+            free_surface(icon);
         }
 
         // Assign dimensions
@@ -339,11 +366,12 @@ void Menu::render_surfaces(SDL_Surface *card_shadow, int shadow_offset, int w, i
     }
 
     height = (y > screen_height) ? y : screen_height;
+    return ret;
 }
 
 void Menu::render_card_textures(SDL_Renderer *renderer, SDL_Texture *card_shadow_texture, int shadow_offset, int card_w, int card_h)
 {
-    SDL_Texture *texture = NULL;
+    SDL_Texture *texture = nullptr;
     SDL_Rect rect = {shadow_offset, shadow_offset, card_w, card_h};
     
     for (Entry &entry : entry_list) {
@@ -357,22 +385,61 @@ void Menu::render_card_textures(SDL_Renderer *renderer, SDL_Texture *card_shadow
         SDL_SetRenderTarget(renderer, entry.texture);
         
         // Copy the shadow
-        SDL_RenderCopy(renderer, card_shadow_texture, NULL, NULL);
+        SDL_RenderCopy(renderer, card_shadow_texture, nullptr, nullptr);
 
         // Copy the background
         texture = SDL_CreateTextureFromSurface(renderer, entry.surface);
-        SDL_RenderCopy(renderer, texture, NULL, &rect);
+        SDL_RenderCopy(renderer, texture, nullptr, &rect);
         free_surface(entry.surface);
-        entry.surface = NULL;
+        entry.surface = nullptr;
         SDL_DestroyTexture(texture);
         
         // Copy the icon
         if (entry.card_type == Entry::CardType::GENERATED) {
             texture = SDL_CreateTextureFromSurface(renderer, entry.icon_surface);
-            SDL_RenderCopy(renderer, texture, NULL, &entry.icon_rect);
+            SDL_RenderCopy(renderer, texture, nullptr, &entry.icon_rect);
             free_surface(entry.icon_surface);
-            entry.icon_surface = NULL;
+            entry.icon_surface = nullptr;
             SDL_DestroyTexture(texture);           
+        }
+    }
+}
+
+void Layout::render_error_texture()
+{
+    SDL_Rect bg_rect = {card_shadow_offset, card_shadow_offset, card_w, card_h};
+    error_texture = SDL_CreateTexture(renderer,
+                        SDL_PIXELFORMAT_ARGB8888,
+                        SDL_TEXTUREACCESS_TARGET,
+                        card_w + 2*card_shadow_offset,
+                        card_h + 2*card_shadow_offset
+                    );
+    SDL_Texture *error_bg_texture = SDL_CreateTextureFromSurface(renderer, error_bg);
+    free_surface(error_bg);
+    error_bg = nullptr;
+
+    SDL_Texture *error_icon_texture = SDL_CreateTextureFromSurface(renderer, error_icon);
+    free_surface(error_icon);
+    error_icon = nullptr;
+
+    SDL_SetTextureBlendMode(error_texture, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderTarget(renderer, error_texture);
+    SDL_RenderCopy(renderer, card_shadow_texture, nullptr, nullptr);
+
+    SDL_RenderCopy(renderer, error_bg_texture, nullptr, &bg_rect);
+    SDL_DestroyTexture(error_bg_texture);
+
+    SDL_RenderCopy(renderer, error_icon_texture, nullptr, &error_icon_rect);
+    SDL_DestroyTexture(error_icon_texture);
+
+    // Assign texture to all failed cards 
+    for (SidebarEntry *entry : list) {
+        if (entry->type == SidebarEntry::Type::MENU) {
+            Menu *menu = (Menu*) entry;
+            for (Entry &entry : menu->entry_list) {
+                if (entry.card_error)
+                    entry.texture = error_texture;
+            }
         }
     }
 }
@@ -428,11 +495,10 @@ void Menu::draw_entries(SDL_Renderer *renderer, int y_min, int y_max)
                     entry.rect.w, // w
                     entry.rect.h // h
                 };
-                SDL_RenderCopy(renderer, entry.texture, NULL, &dst_rect);
+                SDL_RenderCopy(renderer, entry.texture, nullptr, &dst_rect);
             }
-            else {
-                SDL_RenderCopy(renderer, entry.texture, NULL, &entry.rect);
-            }
+            else
+                SDL_RenderCopy(renderer, entry.texture, nullptr, &entry.rect);
         }
     }
 }
@@ -451,18 +517,18 @@ void Layout::parse(const std::string &file)
     spdlog::debug("Parsing layout file '{}'", file);
     xmlDocPtr doc;
     xmlNodePtr node;
-    Menu *menu = NULL;
-    Command *command = NULL;
+    Menu *menu = nullptr;
+    Command *command = nullptr;
     int error;
 
-    xmlSetGenericErrorFunc(NULL, libxml2_error_handler);
+    xmlSetGenericErrorFunc(nullptr, libxml2_error_handler);
     doc = xmlParseFile(file.c_str());
-    if (doc == NULL) {
+    if (doc == nullptr) {
         spdlog::critical("Failed to parse layout file");
         quit(EXIT_FAILURE);
     }
     node = xmlDocGetRootElement(doc);
-    if (node == NULL) {
+    if (node == nullptr) {
         spdlog::critical("Could not get root element of layout file");
         xmlFreeDoc(doc);
         quit(EXIT_FAILURE);
@@ -474,14 +540,13 @@ void Layout::parse(const std::string &file)
         quit(EXIT_FAILURE);
     }
 
-    for (node = node->xmlChildrenNode; node != NULL; node = node->next) {
+    for (node = node->xmlChildrenNode; node != nullptr; node = node->next) {
 
         // Menu detected
         if (!xmlStrcmp(node->name, (const xmlChar*) "menu")) {
             xmlChar *title = xmlGetProp(node, (const xmlChar*) "title");
-            if (title == NULL) {
+            if (title == nullptr)
                 spdlog::error("'menu' element in line {} has no 'title' attribute", node->line);
-            }
             else {
                 menu = new Menu((const char*) title);
                 xmlFree(title);
@@ -493,9 +558,9 @@ void Layout::parse(const std::string &file)
         // Command detected
         else if (!xmlStrcmp(node->name, (const xmlChar*) "command")) {
             xmlChar *title = xmlGetProp(node, (const xmlChar*) "title");
-            if (title != NULL) {
+            if (title != nullptr) {
                 xmlChar *cmd = xmlNodeGetContent(node);
-                if (cmd != NULL && !xmlChildElementCount(node)) {
+                if (cmd != nullptr && !xmlChildElementCount(node)) {
                     command = new Command((const char*) title, (const char*) cmd);
                     xmlFree(cmd);
                     list.push_back(command);
@@ -544,7 +609,7 @@ void SidebarHighlight::render_surface(int w, int h, int rx)
     shadow_offset = (int) std::round(max_blur * 2.0f);
     surface = create_shadow(highlight, box_shadows, shadow_offset);
     SDL_Rect tmp = {shadow_offset, shadow_offset, highlight->w, highlight->h};
-    SDL_BlitSurface(highlight, NULL, surface, &tmp);
+    SDL_BlitSurface(highlight, nullptr, surface, &tmp);
     free_surface(highlight);
 
     rect.w = surface->w;
@@ -556,7 +621,7 @@ void SidebarHighlight::render_texture(SDL_Renderer *renderer)
 {
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     free_surface(surface);
-    surface = NULL;
+    surface = nullptr;
 }
 
 
@@ -594,7 +659,7 @@ void MenuHighlight::render_surface(int x, int y, int w, int h, int t, int shadow
 
     surface = create_shadow(highlight, box_shadows, shadow_offset);
     SDL_Rect blit_rect = {shadow_offset, shadow_offset, highlight->w, highlight->h};
-    SDL_BlitSurface(highlight, NULL, surface, &blit_rect);
+    SDL_BlitSurface(highlight, nullptr, surface, &blit_rect);
     free_surface(highlight);
     Uint32 key = SDL_MapRGBA(surface->format, mask_color.r, mask_color.g, mask_color.b, 0xFF);
     SDL_SetColorKey(surface, SDL_TRUE, key);
@@ -733,28 +798,30 @@ void Layout::load_surfaces(int screen_width, int screen_height)
                                   SDL_PIXELFORMAT_ARGB8888
                               );
     Uint32 white = SDL_MapRGBA(shadow_box->format, 0xFF, 0xFF, 0xFF, 0xFF);
-    SDL_FillRect(shadow_box, NULL, white);
+    SDL_FillRect(shadow_box, nullptr, white);
     card_shadow = create_shadow(shadow_box, box_shadows, card_shadow_offset);
     free_surface(shadow_box);
 
     // Menu card rendering
     card_y_advance = card_h + card_spacing;
     max_rows = (y_max - y_min) / card_y_advance;
-    Menu *menu = NULL;
+    Menu *menu = nullptr;
     for (const SidebarEntry *entry : list) {
         if (entry->type == SidebarEntry::Type::MENU) {
             menu = (Menu*) entry;
-            menu->render_surfaces(card_shadow, 
-                card_shadow_offset, 
-                card_w, 
-                card_h, 
-                card_x0 - card_shadow_offset, 
-                card_y0 - card_shadow_offset, 
-                card_spacing, 
-                screen_height
-            );
+            card_error |= !menu->render_surfaces(card_shadow_offset, 
+                              card_w, 
+                              card_h, 
+                              card_x0 - card_shadow_offset, 
+                              card_y0 - card_shadow_offset, 
+                              card_spacing, 
+                              screen_height
+                          );
         }
     }
+
+    if (card_error)
+        render_error_surface();
 
     // Menu highlight geometry calculations and rendering
     float f_card_spacing = (float) card_spacing;
@@ -784,6 +851,31 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     spdlog::debug("Successfully rendered surfaces");
 }
 
+void Layout::render_error_surface()
+{
+    if (error_bg || error_icon)
+        return;
+    
+    error_bg = SDL_CreateRGBSurfaceWithFormat(0, 
+                   card_w, 
+                   card_h, 
+                   32,
+                   SDL_PIXELFORMAT_ARGB8888
+               );
+    Uint32 color = SDL_MapRGBA(error_bg->format, 0xFF, 0xFF, 0xFF, 0xFF);
+    SDL_FillRect(error_bg, nullptr, color);
+
+    // Geometry
+    float target_h = (float) card_h  * (1.0f - 2.0f * ERROR_ICON_MARGIN);
+    float target_w = target_h;
+    error_icon_rect = {
+        (card_w - (int) target_w) / 2 + card_shadow_offset,
+        (int) std::round(ERROR_ICON_MARGIN * (float) card_h) + card_shadow_offset,
+        (int) std::round(target_w),
+        (int) std::round(target_h)
+    };
+    error_icon = rasterize_svg(std::string(ERROR_FORMAT), target_w, target_h);
+}
 
 void Layout::load_textures(SDL_Renderer *renderer)
 {
@@ -791,7 +883,7 @@ void Layout::load_textures(SDL_Renderer *renderer)
     spdlog::debug("Rendering textures...");
 
     // Background texture
-    if (background_surface != NULL) {
+    if (background_surface != nullptr) {
         SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, background_surface);
         if (background_surface->w != screen_width || background_surface->h != screen_height) {
             background_texture = SDL_CreateTexture(renderer,
@@ -801,21 +893,21 @@ void Layout::load_textures(SDL_Renderer *renderer)
                                      screen_height
                                  );
             SDL_SetRenderTarget(renderer, background_texture);
-            SDL_RenderCopy(renderer, texture, NULL, NULL);
+            SDL_RenderCopy(renderer, texture, nullptr, nullptr);
             SDL_DestroyTexture(texture);
         }
-        else {
+        else
             background_texture = texture;
-        }
+
         free_surface(background_surface);
     }
     sidebar_highlight.render_texture(renderer);
 
+    // Render application cards
     card_shadow_texture = SDL_CreateTextureFromSurface(renderer, card_shadow);
     free_surface(card_shadow);
-    card_shadow = NULL;
+    card_shadow = nullptr;
     SDL_SetTextureBlendMode(card_shadow_texture, SDL_BLENDMODE_NONE);
-
     Menu *menu;
     for (SidebarEntry *entry : list) {
         entry->texture = SDL_CreateTextureFromSurface(renderer, entry->surface);
@@ -826,13 +918,15 @@ void Layout::load_textures(SDL_Renderer *renderer)
             menu->render_card_textures(renderer, card_shadow_texture, card_shadow_offset, card_w, card_h);
         }
     }
+    if (card_error)
+        render_error_texture();
     SDL_DestroyTexture(card_shadow_texture);
-    card_shadow_texture = NULL;
+    card_shadow_texture = nullptr;
 
     menu_highlight.render_texture(renderer);
     if (config.screensaver_enabled)
         screensaver.render_texture(renderer);
-    SDL_SetRenderTarget(renderer, NULL);
+    SDL_SetRenderTarget(renderer, nullptr);
     spdlog::debug("Sucessfully rendered textures");
 }
 
@@ -842,14 +936,13 @@ void Layout::move_up()
     if (selection_mode == SelectionMode::SIDEBAR) {
         if (sidebar_pos) {
             if (sidebar_shift_count && sidebar_pos == sidebar_shift_count){
-                add_shift(Shift::Type::SIDEBAR, Direction::DOWN, sidebar_y_advance, SIDEBAR_SHIFT_TIME, NULL);
+                add_shift(Shift::Type::SIDEBAR, Direction::DOWN, sidebar_y_advance, SIDEBAR_SHIFT_TIME, nullptr);
                 sidebar_shift_count--;
             }
 
             // Shift menus if necessary
-            if (current_menu != NULL) {
+            if (current_menu != nullptr)
                 add_shift(Shift::Type::MENU, Direction::DOWN, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
-            }
             if ((*(current_entry - 1))->type == SidebarEntry::Type::MENU) {
                 current_menu = (Menu*) *(current_entry - 1);
                 if (!current_menu->y_offset)
@@ -857,9 +950,8 @@ void Layout::move_up()
                 visible_menus.insert(current_menu);
                 add_shift(Shift::Type::MENU, Direction::DOWN, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
             }
-            else {
-                current_menu = NULL;
-            }
+            else
+                current_menu = nullptr;
 
             // Adjust texture color
             set_texture_color((*current_entry)->texture, config.sidebar_text_color);
@@ -880,9 +972,9 @@ void Layout::move_up()
             current_menu->shift_count--;
         }
         
-        else {
-            add_shift(Shift::Type::HIGHLIGHT, Direction::UP, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, NULL);
-        }
+        else
+            add_shift(Shift::Type::HIGHLIGHT, Direction::UP, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, nullptr);
+
         current_menu->current_entry -= 3;
         current_menu->row--;
         if (sound.connected)
@@ -897,9 +989,8 @@ void Layout::move_down()
         if (sidebar_pos < (num_sidebar_entries - 1)) {
 
             // Shift menus if necessary
-            if (current_menu != NULL) {
+            if (current_menu != nullptr)
                 add_shift(Shift::Type::MENU, Direction::UP, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
-            }
             if ((*(current_entry + 1))->type == SidebarEntry::Type::MENU) {
                 current_menu = (Menu*) *(current_entry + 1);
                 if (!current_menu->y_offset)
@@ -907,9 +998,8 @@ void Layout::move_down()
                 visible_menus.insert(current_menu);
                 add_shift(Shift::Type::MENU, Direction::UP, screen_height, SIDEBAR_SHIFT_TIME, current_menu);
             }
-            else {
-                current_menu = NULL;
-            }
+            else
+                current_menu = nullptr;
 
             // Adjust text color
             set_texture_color((*current_entry)->texture, config.sidebar_text_color);
@@ -923,7 +1013,7 @@ void Layout::move_down()
 
         // Shift sidebar
         if (max_sidebar_entries != -1 && sidebar_pos < (num_sidebar_entries - max_sidebar_entries)) {
-            add_shift(Shift::Type::SIDEBAR, Direction::UP, sidebar_y_advance, SIDEBAR_SHIFT_TIME, NULL);
+            add_shift(Shift::Type::SIDEBAR, Direction::UP, sidebar_y_advance, SIDEBAR_SHIFT_TIME, nullptr);
             sidebar_shift_count++;
         }
     }
@@ -937,9 +1027,8 @@ void Layout::move_down()
                 add_shift(Shift::Type::MENU, Direction::UP, card_y_advance, ROW_SHIFT_TIME, current_menu);
                 current_menu->shift_count++;
             }
-            else {
-                add_shift(Shift::Type::HIGHLIGHT, Direction::DOWN, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, NULL);
-            }
+            else
+                add_shift(Shift::Type::HIGHLIGHT, Direction::DOWN, highlight_y_advance, HIGHLIGHT_SHIFT_TIME, nullptr);
 
             current_menu->current_entry += COLUMNS;
             current_menu->row++;
@@ -973,7 +1062,7 @@ void Layout::move_left()
         }
         else {
             // Move highlight left
-            add_shift(Shift::Type::HIGHLIGHT, Direction::LEFT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
+            add_shift(Shift::Type::HIGHLIGHT, Direction::LEFT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, nullptr);
             current_menu->column--;
             current_menu->current_entry--;
             if (sound.connected)
@@ -985,7 +1074,7 @@ void Layout::move_left()
 
 void Layout::move_right()
 {
-    if (selection_mode == SelectionMode::SIDEBAR && current_menu != NULL && !shift_queue.size()) {
+    if (selection_mode == SelectionMode::SIDEBAR && current_menu != nullptr && !shift_queue.size()) {
         selection_mode = SelectionMode::MENU;
         set_texture_color((*current_entry)->texture, config.sidebar_text_color);
         if (sound.connected)
@@ -999,7 +1088,7 @@ void Layout::move_right()
         if(current_menu->column < max_columns - 1) {
             
             // Shift highlight right
-            add_shift(Shift::Type::HIGHLIGHT, Direction::RIGHT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, NULL);
+            add_shift(Shift::Type::HIGHLIGHT, Direction::RIGHT, highlight_x_advance, HIGHLIGHT_SHIFT_TIME, nullptr);
 
             current_menu->column++;
             current_menu->current_entry++;
@@ -1018,7 +1107,7 @@ void Layout::select()
             sound.play_select();
         }
     }
-    else if (selection_mode == SelectionMode::MENU && pressed_entry == NULL) {
+    else if (selection_mode == SelectionMode::MENU && pressed_entry == nullptr) {
         Entry &entry = *(current_menu->current_entry);
         spdlog::debug("User selected entry '{}'", entry.title);
         pressed_entry = new PressedEntry(entry);
@@ -1038,7 +1127,7 @@ void Layout::add_shift(Shift::Type type, Direction direction, int target, float 
     float velocity;
 
     // Interrupt if opposite direction shift is in progress
-    for(auto shift = shift_queue.begin(); shift != shift_queue.end(); ++shift) {
+    for (auto shift = shift_queue.begin(); shift != shift_queue.end(); ++shift) {
         if (shift->direction == opposite && shift->type == type && 
         (shift->type != Shift::Type::MENU || shift->menu == menu)) {
             int new_target = target - (shift->target - shift->total);
@@ -1089,9 +1178,8 @@ void Layout::shift()
         // Apply shift
         if (shift->type == Shift::Type::SIDEBAR) {
             sidebar_highlight.rect.y += current;
-            for (SidebarEntry *entry : list) {
+            for (SidebarEntry *entry : list)
                 entry->dst_rect.y += current;
-            }
         }
         else if (shift->type == Shift::Type::MENU) {
             shift->menu->y_offset += current;
@@ -1101,16 +1189,14 @@ void Layout::shift()
             }
         }
         else if (shift->type == Shift::Type::HIGHLIGHT) {
-            if (shift->direction == Direction::LEFT || shift->direction == Direction::RIGHT) {
+            if (shift->direction == Direction::LEFT || shift->direction == Direction::RIGHT)
                 menu_highlight.rect.x += current;
-            }
-            else {
+            else
                 menu_highlight.rect.y += current;
-            }
         }
 
         shift->ticks = ticks;
-        (shift->target == shift->total) ? shift_queue.erase(shift) : ++shift;
+        shift->target == shift->total ? shift_queue.erase(shift) : ++shift;
     }
 }
 
@@ -1119,9 +1205,9 @@ void Layout::update()
     if (shift_queue.size())
         shift();
 
-    if (pressed_entry != NULL && pressed_entry->update()) {
+    if (pressed_entry != nullptr && pressed_entry->update()) {
         delete pressed_entry;
-        pressed_entry = NULL;
+        pressed_entry = nullptr;
     }
 
     if (config.screensaver_enabled)
@@ -1138,8 +1224,8 @@ void Layout::draw()
     SDL_RenderClear(renderer);
 
     // Draw background
-    if (background_texture != NULL)
-        SDL_RenderCopy(renderer, background_texture, NULL, NULL);
+    if (background_texture != nullptr)
+        SDL_RenderCopy(renderer, background_texture, nullptr, nullptr);
 
     // Draw sidebar highlight
     if (selection_mode == SelectionMode::SIDEBAR) {
@@ -1167,9 +1253,8 @@ void Layout::draw()
         }
 
         // Default, fully visible case
-        else {
-            SDL_RenderCopy(renderer, sidebar_highlight.texture, NULL, &sidebar_highlight.rect);
-        }
+        else
+            SDL_RenderCopy(renderer, sidebar_highlight.texture, nullptr, &sidebar_highlight.rect);
     }
     
     // Draw sidebar texts
@@ -1226,11 +1311,11 @@ void Layout::draw()
 
     // Draw menu highlight
     if (selection_mode == SelectionMode::MENU)
-        SDL_RenderCopy(renderer, menu_highlight.texture, NULL, &menu_highlight.rect);
+        SDL_RenderCopy(renderer, menu_highlight.texture, nullptr, &menu_highlight.rect);
 
     // Draw screensaver
     if (screensaver.active)
-        SDL_RenderCopy(renderer, screensaver.texture, NULL, NULL);
+        SDL_RenderCopy(renderer, screensaver.texture, nullptr, nullptr);
 
     // Output to screen
     SDL_RenderPresent(renderer);

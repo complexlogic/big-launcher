@@ -142,7 +142,7 @@ void Display::create_window()
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
     if (config.debug)
-        this->print_debug_info();
+        print_debug_info();
 }
 
 void Display::close()
