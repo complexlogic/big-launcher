@@ -24,6 +24,23 @@ if (UNIX)
 endif ()
 
 include_directories(${PROJECT_BINARY_DIR})
+
+# Config and Layout file generation
+set(HTML_USERAGENT "Mozilla/5.0 (Linux; Tizen 2.3; SmartHub; SMART-TV; SmartTV; U; Maple2012) AppleWebKit/538.1+ (KHTML, like Gecko) TV Safari/538.1+")
+if (UNIX)
+  set(BROWSER_COMMAND "chromium --start-fullscreen --kiosk --user-agent=\"${HTML_USERAGENT}\"")
+  set(ICONS_DIR "assets/icons")
+  set(CMD_KODI "kodi")
+  set(CMD_PLEX "plex-htpc")
+  set(CMD_NETFLIX "${BROWSER_COMMAND} netflix.com")
+  set(CMD_YOUTUBE "${BROWSER_COMMAND} youtube.com/tv")
+  set(CMD_JELLYFIN "jellyfinmediaplayer")
+  set(CMD_DISNEYPLUS "${BROWSER_COMMAND} disneyplus.com")
+  set(CMD_STEAM "steam")
+  set(CMD_RETROARCH "retroarch")
+  set(CMD_MINECRAFT "minecraft")
+endif ()
+
 configure_file(${PROJECT_SOURCE_DIR}/config/config.h.in ${PROJECT_BINARY_DIR}/lconfig.h)
 configure_file(${PROJECT_SOURCE_DIR}/config/layout.xml.in ${PROJECT_BINARY_DIR}/layout.xml)
 configure_file(${PROJECT_SOURCE_DIR}/config/config.ini.in ${PROJECT_BINARY_DIR}/config.ini)

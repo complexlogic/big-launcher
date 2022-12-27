@@ -4,61 +4,74 @@
     <menu title="Media">
     
         <entry title="Kodi">
-            <command>kodi</command>
+            <command>@CMD_KODI@</command>
             <card>
-                <icon>assets/icons/kodi4.webp</icon>
+                <icon>@ICONS_DIR@/kodi.webp</icon>
                 <background>#000000</background>
             </card>
         </entry>
         
         <entry title="Plex">
-            <command>plexmediaplayer</command>
+            <command>@CMD_PLEX@</command>
             <card>
-                <icon>assets/icons/plex2.png</icon>
+                <icon>@ICONS_DIR@/plex.png</icon>
                 <background>#313138</background>
             </card>
         </entry>
 
         <entry title="Netflix">
-            <command>netflix</command>
+            <command>@CMD_NETFLIX@</command>
             <card>
-                <icon>assets/icons/netflix.svg</icon>
+                <icon>@ICONS_DIR@/netflix.svg</icon>
                 <background>#FFFFFF</background>
             </card>
         </entry>
         
         <entry title="YouTube">
-            <command>youtube</command>
+            <command>@CMD_YOUTUBE@</command>
             <card>
-                <icon>assets/icons/youtube.svg</icon>
+                <icon>@ICONS_DIR@/youtube.svg</icon>
                 <background>#FFFFFF</background>
             </card>
         </entry>
         
         <entry title="Jellyfin">
-            <command>jellyfinmediaplayer</command>
+            <command>@CMD_JELLYFIN@</command>
             <card>
-                <icon>assets/icons/jellyfin.svg</icon>
+                <icon>@ICONS_DIR@/jellyfin.svg</icon>
                 <background>#000B25</background>
             </card>
-        </entry>  
+        </entry>
+
+        <entry title="Disney+">
+            <command>@CMD_DISNEYPLUS@</command>
+            <card>@ICONS_DIR@/disneyplus.svg</card>
+        </entry>
     </menu>
 
     <menu title="Games">
     
         <entry title="Steam">
-            <command>steam</command>
+            <command>@CMD_STEAM@</command>
             <card>
-                <icon>assets/icons/steam2.svg</icon>
+                <icon>@ICONS_DIR@/steam.svg</icon>
                 <background>#000000</background>
             </card>
         </entry>
         
         <entry title="RetroArch">
-            <command>retroarch</command>
+            <command>@CMD_RETROARCH@</command>
             <card>
-                <icon>assets/icons/retroarch.png</icon>
-                <background>#0000FF</background>
+                <icon>@ICONS_DIR@/retroarch.svg</icon>
+                <background>#235195</background>
+            </card>
+        </entry>
+
+        <entry title="Minecraft">
+            <command>@CMD_MINECRAFT@</command>
+            <card>
+                <icon margin="10%">@ICONS_DIR@/minecraft.svg</icon>
+                <background>@ICONS_DIR@/minecraft-bg.png</background>
             </card>
         </entry>
 
@@ -68,6 +81,6 @@
     <command title="Sleep">:sleep</command>
     <command title="Restart">:restart</command>
     <command title="Shutdown">:shutdown</command>
+    <command title="Quit">:quit</command>
 
 </layout>
- 
