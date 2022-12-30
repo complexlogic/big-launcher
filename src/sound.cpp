@@ -123,7 +123,10 @@ int Sound::set_volume(int channel, int volume)
             arr[n] = (int) std::round(a * pow(10.f, (double) n * b) * (double) MIX_MAX_VOLUME);
         return arr;
     };
-    static constexpr std::array<int, MAX_VOLUME + 1> volume_array = generate_array();
+#ifdef __unix__
+    constexpr
+#endif
+    static std::array<int, MAX_VOLUME + 1> volume_array = generate_array();
     
     Mix_Volume(channel, volume_array[volume]);
     return 0;

@@ -594,8 +594,10 @@ void SidebarHighlight::render_surface(int w, int h, int rx)
 
     std::string highlight_buffer = format_highlight(w, h, rx, config.sidebar_highlight_color);
     SDL_Surface *highlight = rasterize_svg(highlight_buffer, -1, -1);
-
-    constexpr Uint8 alpha = (Uint8) std::round((float) 0xFF * SHADOW_ALPHA);
+#ifdef __unix
+    constexpr
+#endif
+    Uint8 alpha = (Uint8) std::round((float) 0xFF * SHADOW_ALPHA);
     float f_height = (float) highlight->h;
 
     float max_blur = SHADOW_BLUR_SLOPE*f_height + SHADOW_BLUR_INTERCEPT;
@@ -648,7 +650,10 @@ void MenuHighlight::render_surface(int x, int y, int w, int h, int t, int shadow
     SDL_Surface *highlight = rasterize_svg(format, -1, -1);
 
     // Render shadow
-    constexpr Uint8 alpha = (Uint8) std::round((float) 0xFF * SHADOW_ALPHA_HIGHLIGHT);
+#ifdef __unix__
+    constexpr
+#endif
+    Uint8 alpha = (Uint8) std::round((float) 0xFF * SHADOW_ALPHA_HIGHLIGHT);
     float f_h = (float) h;
     float max_blur = SHADOW_BLUR_SLOPE*f_h+ SHADOW_BLUR_INTERCEPT;
     int max_y_offset = SHADOW_OFFSET_SLOPE*f_h + SHADOW_OFFSET_INTERCEPT;
@@ -782,7 +787,10 @@ void Layout::load_surfaces(int screen_width, int screen_height)
     float f_card_h = (float) card_h;
 
     // Render card shadow
-    constexpr Uint8 alpha = (Uint8) std::round((float) 0xFF * SHADOW_ALPHA);
+#ifdef __unix__
+    constexpr
+#endif
+    Uint8 alpha = (Uint8) std::round((float) 0xFF * SHADOW_ALPHA);
     float max_blur = SHADOW_BLUR_SLOPE*f_card_h + SHADOW_BLUR_INTERCEPT;
     int max_y_offset = SHADOW_OFFSET_SLOPE*f_card_h + SHADOW_OFFSET_INTERCEPT;
     std::vector<BoxShadow> box_shadows = {
@@ -1168,9 +1176,8 @@ void Layout::shift()
         
         // Calculate position change based on velocity and time elapsed
         int current = (int) ((float) (ticks - shift->ticks) * shift->velocity);
-        if (shift->total + current > shift->target) {
+        if (shift->total + current > shift->target)
             current = shift->target - shift->total;
-        }
         shift->total += current;
         if (shift->direction == Direction::UP || shift->direction == Direction::LEFT)
             current *= -1;
@@ -1196,7 +1203,8 @@ void Layout::shift()
         }
 
         shift->ticks = ticks;
-        shift->target == shift->total ? shift_queue.erase(shift) : ++shift;
+        shift = shift->target == shift->total ? shift_queue.erase(shift) : shift + 1;
+        //++shift;
     }
 }
 
@@ -1212,7 +1220,6 @@ void Layout::update()
 
     if (config.screensaver_enabled)
         screensaver.update();
-    
 }
 
 void Layout::draw()

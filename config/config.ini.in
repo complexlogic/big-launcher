@@ -1,7 +1,7 @@
 [Settings]
 BackgroundColor1=
 BackgroundColor2=
-#BackgroundImage=
+BackgroundImage=assets/background.svg
 
 
 SidebarHighlightColor=#F2F2F2
@@ -28,7 +28,7 @@ IdleTime=900
 Intensity=70%
 
 [Hotkeys]
-Hotkey1=1B;:quit
+Hotkey1=#1B;:quit
 
 [Gamepad]
 Enabled=false

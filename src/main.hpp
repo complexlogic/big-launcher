@@ -1,9 +1,16 @@
 #pragma once
 
 #include <SDL.h>
+#ifdef _WIN32
+#include <SDL_syswm.h>
+#endif
 #include <SDL_mixer.h>
+#include <string>
+#include <string_view>
 #include <vector>
+#include <array>
 #include <set>
+#include <cmath>
 
 #define DISPLAY_ASPECT_RATIO 1.77777778
 #define DISPLAY_ASPECT_RATIO_TOLERANCE 0.01f
@@ -14,7 +21,7 @@
 #define GAMEPAD_REPEAT_DELAY 500
 #define GAMEPAD_REPEAT_INTERVAL 25
 #define PI 3.14159f
-#define GAMEPAD_AXIS_RANGE 60 // degrees
+#define GAMEPAD_AXIS_RANGE 60.f // degrees
 
 class Display {
     public:
@@ -22,6 +29,9 @@ class Display {
         SDL_Window *window;
         SDL_DisplayMode dm;
         SDL_RendererInfo ri;
+#ifdef _WIN32
+        SDL_SysWMinfo wm_info;
+#endif
         int width;
         int height;
 
@@ -84,7 +94,11 @@ class Gamepad {
         std::vector<Stick> sticks;
         std::array<std::array<int, 2>, 2> axis_values;
         GamepadControl *selected_axis;
-        static constexpr float max_opposing = sin((GAMEPAD_AXIS_RANGE / 2.f) * PI / 180.f);
+#ifdef __unix__
+        constexpr static float max_opposing = sin((GAMEPAD_AXIS_RANGE / 2.f) * PI / 180.f);
+#else
+        static float max_opposing = sin((GAMEPAD_AXIS_RANGE / 2.f) * PI / 180.f);
+#endif
         int delay_period;
         int repeat_period;
 
@@ -101,7 +115,7 @@ class Gamepad {
 struct Hotkey {
     SDL_Keycode keycode;
     std::string command;
-    Hotkey(SDL_Keycode keycode, char *command) : keycode(keycode), command(command) {};
+    Hotkey(SDL_Keycode keycode, std::string_view command) : keycode(keycode), command(command) {};
 };
 
 class HotkeyList {

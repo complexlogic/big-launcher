@@ -6,7 +6,7 @@
         <entry title="Kodi">
             <command>@CMD_KODI@</command>
             <card>
-                <icon>@ICONS_DIR@/kodi.webp</icon>
+                <icon>@ICONS_DIR@kodi.webp</icon>
                 <background>#000000</background>
             </card>
         </entry>
@@ -14,7 +14,7 @@
         <entry title="Plex">
             <command>@CMD_PLEX@</command>
             <card>
-                <icon>@ICONS_DIR@/plex.png</icon>
+                <icon>@ICONS_DIR@plex.png</icon>
                 <background>#313138</background>
             </card>
         </entry>
@@ -22,7 +22,7 @@
         <entry title="Netflix">
             <command>@CMD_NETFLIX@</command>
             <card>
-                <icon>@ICONS_DIR@/netflix.svg</icon>
+                <icon>@ICONS_DIR@netflix.svg</icon>
                 <background>#FFFFFF</background>
             </card>
         </entry>
@@ -30,7 +30,7 @@
         <entry title="YouTube">
             <command>@CMD_YOUTUBE@</command>
             <card>
-                <icon>@ICONS_DIR@/youtube.svg</icon>
+                <icon>@ICONS_DIR@youtube.svg</icon>
                 <background>#FFFFFF</background>
             </card>
         </entry>
@@ -38,23 +38,23 @@
         <entry title="Jellyfin">
             <command>@CMD_JELLYFIN@</command>
             <card>
-                <icon>@ICONS_DIR@/jellyfin.svg</icon>
+                <icon>@ICONS_DIR@jellyfin.svg</icon>
                 <background>#000B25</background>
             </card>
         </entry>
 
         <entry title="Disney+">
             <command>@CMD_DISNEYPLUS@</command>
-            <card>@ICONS_DIR@/disneyplus.svg</card>
+            <card>@ICONS_DIR@disneyplus.svg</card>
         </entry>
     </menu>
 
     <menu title="Games">
     
         <entry title="Steam">
-            <command>@CMD_STEAM@</command>
+            <command>@CMD_STEAM@ steam://open/bigpicture</command>
             <card>
-                <icon>@ICONS_DIR@/steam.svg</icon>
+                <icon>@ICONS_DIR@steam.svg</icon>
                 <background>#000000</background>
             </card>
         </entry>
@@ -62,7 +62,7 @@
         <entry title="RetroArch">
             <command>@CMD_RETROARCH@</command>
             <card>
-                <icon>@ICONS_DIR@/retroarch.svg</icon>
+                <icon>@ICONS_DIR@retroarch.svg</icon>
                 <background>#235195</background>
             </card>
         </entry>
@@ -70,8 +70,8 @@
         <entry title="Minecraft">
             <command>@CMD_MINECRAFT@</command>
             <card>
-                <icon margin="10%">@ICONS_DIR@/minecraft.svg</icon>
-                <background>@ICONS_DIR@/minecraft-bg.png</background>
+                <icon margin="10%">@ICONS_DIR@minecraft.svg</icon>
+                <background>@ICONS_DIR@minecraft-bg.png</background>
             </card>
         </entry>
 

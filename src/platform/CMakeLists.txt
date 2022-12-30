@@ -1,4 +1,7 @@
 if (UNIX)
   add_library(platform "unix.cpp")
   target_link_libraries(platform PkgConfig::SDL2 PkgConfig::SPDLOG)
+elseif (WIN32)
+  add_library(platform "win32.cpp")
+  target_link_libraries(platform SDL2::SDL2main)
 endif ()

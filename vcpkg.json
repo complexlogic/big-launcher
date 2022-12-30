@@ -1,0 +1,17 @@
+{
+    "dependencies": [
+      "sdl2",
+      {
+        "name": "sdl2-image",
+        "features": ["libjpeg-turbo", "libwebp"]
+      },
+      "sdl2-ttf",
+      "sdl2-mixer",
+      "fmt",
+      "spdlog",
+      "libxml2",
+      "inih",
+      "getopt"
+    ]
+  } 
+  

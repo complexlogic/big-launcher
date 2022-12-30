@@ -14,7 +14,6 @@
 #include "util.hpp"
 #include "screensaver.hpp"
 
-
 extern "C" int handler(void* user, const char* section, const char* name, const char* value);
 extern Config config;
 extern char *executable_dir;
@@ -91,7 +90,6 @@ int handler(void* user, const char* section, const char* name, const char* value
             hex_to_color(value, config.sidebar_text_color_highlighted);
         else if (MATCH(name, "MenuHighlightColor"))
             hex_to_color(value, config.menu_highlight_color);
-
         else if (MATCH(name, "BackgroundImage"))
             config.add_path(value, config.background_image_path);
     }
@@ -222,8 +220,8 @@ bool hex_to_color(std::string_view string, SDL_Color &color)
         return false;
     it++;
 
-    Uint32 hex = (Uint32) strtoul(it, NULL, 16);
-    if (!hex && strcmp(it, "000000"))
+    Uint32 hex = (Uint32) strtoul(&*it, NULL, 16);
+    if (!hex && strcmp(&*it, "000000"))
         return false;
 
     color = {
@@ -266,6 +264,11 @@ bool find_file(std::string &out, const char *filename)
             prefixes[2] = str.c_str();
             prefixes[3] = SYSTEM_SHARE_DIR;
 #endif
+#ifdef _WIN32
+            prefixes.resize(2);
+            prefixes[0] = ".\\";
+            prefixes[1] = executable_dir;
+#endif
         }
     }
 
@@ -278,6 +281,12 @@ bool find_file(std::string &out, const char *filename)
             prefixes[1] = SYSTEM_FONTS_DIR;
 
 #endif
+#ifdef _WIN32
+            prefixes.resize(2);
+            join_paths(str, {executable_dir, "assets", "fonts"});
+            prefixes[0] = ".\\assets\\fonts";
+            prefixes[1] = str.c_str();
+#endif
         }
     }
 
@@ -289,6 +298,12 @@ bool find_file(std::string &out, const char *filename)
             prefixes[0] = str.c_str();
             prefixes[1] = SYSTEM_SOUNDS_DIR;
 
+#endif
+#ifdef _WIN32
+            prefixes.resize(2);
+            join_paths(str, {executable_dir, "assets", "sounds"});
+            prefixes[0] = ".\\assets\\sounds";
+            prefixes[1] = str.c_str();
 #endif
         }
     }

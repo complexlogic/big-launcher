@@ -7,11 +7,12 @@
 #include <spdlog/spdlog.h>
 #include "platform.hpp"
 
+pid_t child_pid;
 
 // A function to launch an external application
 bool start_process(const std::string &command, bool application)
 {
-    pid_t child_pid = fork();
+    child_pid = fork();
     switch(child_pid) {
         case -1:
             spdlog::error("Could not fork new process");
@@ -21,13 +22,13 @@ bool start_process(const std::string &command, bool application)
         case 0:
             {
                 const char *file = "/bin/sh";
-                std::array<char*, 4> args = {
-                    (char*) "sh",
-                    (char*) "-c", 
-                    (char*) command.c_str(), 
+                const char *args[] = {
+                    "sh",
+                    "-c", 
+                    command.c_str(), 
                     NULL
                 };
-                execvp(file, args.data());
+                execvp(file, (char* const*) args);
             }
             break;
 
@@ -44,5 +45,17 @@ bool start_process(const std::string &command, bool application)
                 return false;
             break;
     }
+    return true;
+}
+
+bool process_running()
+{
+    pid_t pid = waitpid(-1*child_pid, NULL, WNOHANG);
+    if (pid > 0) {
+        if (waitpid(-1*child_pid, NULL, WNOHANG) == -1)
+            return false;
+    } 
+    else if (pid == -1)
+        return false;
     return true;
 }

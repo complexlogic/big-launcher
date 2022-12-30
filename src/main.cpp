@@ -46,6 +46,7 @@ void Display::init()
 {
 #ifdef __unix__
     //SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+    setenv("SDL_VIDEODRIVER", "wayland,x11", 0);
 #endif
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,"1");
 
@@ -140,6 +141,11 @@ void Display::create_window()
     // Set renderer properties
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+
+#ifdef _WIN32
+    SDL_VERSION(&wm_info.version);
+    SDL_GetWindowWMInfo(window, &wm_info);
+#endif
 
     if (config.debug)
         print_debug_info();
@@ -380,14 +386,23 @@ void Gamepad::poll()
 void HotkeyList::add(const char *value)
 {
     std::string_view string = value;
+    if (string.front() != '#')
+        return;
     size_t pos = string.find_first_of(";");
     if (pos == std::string::npos || pos == (string.size() - 1))
         return;
 
-    std::string keycode_s(string, 0, pos);
+    std::string keycode_s(string, 1, pos);
     SDL_Keycode keycode = (SDL_Keycode) strtol(keycode_s.c_str(), NULL, 16);
     if (!keycode)
         return;
+    std::string_view command((char*) value + pos + 1);
+#ifdef _WIN32
+    if (command == ":exit") {
+        set_exit_hotkey(keycode);
+        return;
+    }
+#endif
 
     list.push_back(Hotkey(keycode, (char*) value + pos + 1));
 }
@@ -503,6 +518,10 @@ static inline void pre_launch()
         sound.disconnect();
     if (gamepad.connected)
         gamepad.disconnect();
+#ifdef _WIN32
+    if (has_exit_hotkey())
+        SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
+#endif
 }
 
 static inline void post_launch()
@@ -511,7 +530,9 @@ static inline void post_launch()
         sound.connect();
     if (config.gamepad_enabled)
         gamepad.connect(config.gamepad_index, false);
-        
+#ifdef _WIN32
+    SDL_EventState(SDL_SYSWMEVENT, SDL_DISABLE);
+#endif
 }
 
 int main(int argc, char *argv[])
@@ -566,6 +587,9 @@ int main(int argc, char *argv[])
     char *home_dir = getenv("HOME");
     join_paths(log_path, {home_dir, ".local", "share", EXECUTABLE_TITLE, LOG_FILENAME});
 #endif
+#ifdef _WIN32
+    join_paths(log_path, {executable_dir, LOG_FILENAME});
+#endif
     auto file_sink = std::make_shared<spdlog::sinks::basic_lazy_file_sink_mt>(log_path, true);
     file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
     std::vector<spdlog::sink_ptr> sinks {file_sink};
@@ -605,7 +629,6 @@ int main(int argc, char *argv[])
         spdlog::critical("Could not locate config file");
         quit(EXIT_FAILURE);
     }
-
 
     // Parse files, initialize libraries
     layout.parse(layout_path);
@@ -650,6 +673,11 @@ int main(int argc, char *argv[])
         SDL_RenderSetLogicalSize(display.renderer, display.width, display.height);
 #endif
 
+#ifdef _WIN32
+    if (has_exit_hotkey())
+        register_exit_hotkey();
+#endif
+
     // Main program loop
     spdlog::debug("");
     spdlog::debug("Begin main loop");
@@ -678,8 +706,10 @@ int main(int argc, char *argv[])
                         // Check hotkeys
                         else {
                             for (Hotkey &hotkey : hotkey_list) {
-                                if (hotkey.keycode == event.key.keysym.sym)
+                                if (hotkey.keycode == event.key.keysym.sym) {
                                     execute_command(hotkey.command);
+                                    break;
+                                }
                             }
                         }
                         ticks.last_input = ticks.main;
@@ -730,6 +760,11 @@ int main(int argc, char *argv[])
                         layout.select();
                     }
                     break;
+#ifdef _WIN32
+                case SDL_SYSWMEVENT:
+                    check_exit_hotkey(event.syswm.msg);
+                    break;
+#endif
             }
         }
 
