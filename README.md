@@ -5,7 +5,7 @@
 
 The program has progressed to the point where it can be used in a working HTPC setup, but it's not ready for release yet. I still need to improve the appearance, stability/error handling, and implement a few more desired features.
 
-![Screenshot](https://user-images.githubusercontent.com/95071366/181177048-306a31fb-f5e1-4816-896a-799b690df593.png)
+![Screenshot](https://user-images.githubusercontent.com/95071366/210119196-7925ff34-cec6-4d5f-b580-ef59990e83a2.png)
 
 ## Roadmap
 The following must be accomplished before an initial release can be made:
@@ -42,10 +42,10 @@ You need to have the following dependencies installed:
 - spdlog
 
 It has a CMake build system and follows the typical build process:
-```
+```bash
 mkdir build && cd build
 cmake ..
 make
 ```
 
-The default config references asset files which aren't included in the repo yet because I don't want to permanently bloat the git history with temporary assets from development. You will need to manually download the zip file [here](https://github.com/complexlogic/big-launcher/files/9312187/assets.zip) and extract the contents to your build directory so that the program can find them.
+The default config references asset files which aren't included in the repo yet because I don't want to permanently bloat the git history with temporary assets from development. You will need to manually download the zip file [here](https://github.com/complexlogic/big-launcher/files/10326572/assets.zip) and extract the contents to your build directory so that the program can find them.
