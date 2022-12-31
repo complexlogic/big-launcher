@@ -1,0 +1,78 @@
+name: Build
+on:
+  push:
+    paths-ignore:
+      [
+        "**/**.md"
+      ]
+
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      [
+        "**/**.md"
+      ]
+
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  actions: none
+  checks: none
+  contents: write
+  deployments: none
+  issues: none
+  packages: read
+  pull-requests: none
+  repository-projects: none
+  security-events: none
+  statuses: read
+
+jobs:
+  build_windows:
+    name: Windows
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+
+    env:
+      CMAKE_BUILD_TYPE: Release
+      CMAKE_GENERATOR: Visual Studio 17 2022
+      VCPKG_TRIPLET: x64-windows-static
+
+    steps:
+      - name: Checkout Git repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - uses: friendlyanon/setup-vcpkg@v1
+        with: { committish: dbd30811862212d24bf929db99361c7c12326783 }
+
+      - name: Configure
+        run: cmake -B build -G "${{env.CMAKE_GENERATOR}}" -D "CMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=${{env.VCPKG_TRIPLET}}
+
+      - name: Download assets
+        uses: suisei-cn/actions-download-file@v1.3.0
+        with:
+          url: "https://github.com/complexlogic/big-launcher/files/10326572/assets.zip"
+          target: build
+
+      - name: Extract assets
+        run: |
+          cd build
+          7z x -r assets.zip
+          rm assets.zip
+
+      - name: Build
+        run: cmake --build build --target package --config ${{ env.CMAKE_BUILD_TYPE }}
+
+      - uses: actions/upload-artifact@v3
+        name: Upload package
+        with:
+          name: Windows build
+          path: build/*.zip

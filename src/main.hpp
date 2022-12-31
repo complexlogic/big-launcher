@@ -97,7 +97,7 @@ class Gamepad {
 #ifdef __unix__
         constexpr static float max_opposing = sin((GAMEPAD_AXIS_RANGE / 2.f) * PI / 180.f);
 #else
-        static float max_opposing = sin((GAMEPAD_AXIS_RANGE / 2.f) * PI / 180.f);
+        float max_opposing = sin((GAMEPAD_AXIS_RANGE / 2.f) * PI / 180.f);
 #endif
         int delay_period;
         int repeat_period;
