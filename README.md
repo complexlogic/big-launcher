@@ -3,11 +3,16 @@
 
 "big-launcher" is a temporary working title only; prior to release, a proper title will be chosen. If you have a suggestion for what the program title should be, please reach out with via an Issue or Discussion topic. If you have graphic design skills, I could also use help in creating the application logo/icon.
 
-The program has progressed to the point where it can be used in a working HTPC setup, but it's not ready for release yet. I still need to improve the appearance, stability/error handling, and implement a few more desired features.
-
 ![Screenshot](https://user-images.githubusercontent.com/95071366/210119196-7925ff34-cec6-4d5f-b580-ef59990e83a2.png)
 
-## Roadmap
+## Current Status
+The program has progressed to the point where it can be used in a working HTPC setup, but it's not ready for release yet. I still need to improve the appearance, stability/error handling, and implement a few more desired features.
+
+Feel free to try it out. The latest Windows development build can be downloaded [here](https://nightly.link/complexlogic/big-launcher/workflows/build/master/Windows%20build.zip). Linux users should [build from source](#building).
+
+There isn't any documentation written yet. There are two configuration files: `layout.xml` and `config.ini`. The `layout.xml` file defines the menus and application images, and `config.ini` controls the general behavior. You can get a general idea of how the configuration works by studying the default files.
+
+### Development Roadmap
 The following must be accomplished before an initial release can be made:
 - [x] Layout parsing
 - [x] Config parsing
