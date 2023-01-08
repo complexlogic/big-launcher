@@ -15,7 +15,7 @@ void Screensaver::render_surface(int w, int h)
                   SDL_PIXELFORMAT_ARGB8888
               );
     Uint32 color = SDL_MapRGBA(surface->format, 0, 0, 0, 0xFF);
-    SDL_FillRect(surface, NULL, color);
+    SDL_FillRect(surface, nullptr, color);
     opacity_change_rate = (float) config.screensaver_intensity / (float) SCREENSAVER_TRANSITION_TIME;
 }
 
@@ -23,7 +23,7 @@ void Screensaver::render_texture(SDL_Renderer *renderer)
 {
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     free_surface(surface);
-    surface = NULL;
+    surface = nullptr;
 }
 
 void Screensaver::update()

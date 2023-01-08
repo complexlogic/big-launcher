@@ -39,10 +39,10 @@ struct BoxShadow{
 };
 
 #define free_surface(s)               \
-if (s != NULL) {                      \
+if (s != nullptr) {                      \
     if(s->flags & SDL_PREALLOC) {     \
         free(s->pixels);              \
-        s->pixels = NULL;             \
+        s->pixels = nullptr;             \
     }                                 \
     SDL_FreeSurface(s);               \
 }

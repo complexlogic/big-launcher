@@ -26,7 +26,7 @@ bool start_process(const std::string &command, bool application)
                     "sh",
                     "-c", 
                     command.c_str(), 
-                    NULL
+                    nullptr
                 };
                 execvp(file, (char* const*) args);
             }
@@ -50,9 +50,9 @@ bool start_process(const std::string &command, bool application)
 
 bool process_running()
 {
-    pid_t pid = waitpid(-1*child_pid, NULL, WNOHANG);
+    pid_t pid = waitpid(-1*child_pid, nullptr, WNOHANG);
     if (pid > 0) {
-        if (waitpid(-1*child_pid, NULL, WNOHANG) == -1)
+        if (waitpid(-1*child_pid, nullptr, WNOHANG) == -1)
             return false;
     } 
     else if (pid == -1)

@@ -220,7 +220,7 @@ class Layout {
         std::vector<Shift> shift_queue;
         std::set<Menu*> visible_menus;
         SelectionMode selection_mode = SelectionMode::SIDEBAR;
-        Menu *current_menu = NULL;
+        Menu *current_menu = nullptr;
 
         // Sidebar
         std::vector<SidebarEntry*> list;

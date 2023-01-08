@@ -36,8 +36,8 @@ State state = { false };
 
 Display::Display()
 {
-    renderer = NULL;
-    window = NULL;
+    renderer = nullptr;
+    window = nullptr;
     width = 0;
     height = 0;
 }
@@ -101,7 +101,7 @@ void Display::create_window()
                  0,
                  SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_BORDERLESS
              );
-    if (window == NULL) {
+    if (window == nullptr) {
         spdlog::critical("Could not create window");
         spdlog::critical("SDL Error: {}", SDL_GetError());
         quit(EXIT_FAILURE);
@@ -112,7 +112,7 @@ void Display::create_window()
     // Create HW accelerated renderer
     spdlog::debug("Creating renderer...");
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (renderer == NULL) {
+    if (renderer == nullptr) {
         spdlog::critical("Could not create renderer");
         spdlog::critical("SDL Error: {}", SDL_GetError());
         quit(EXIT_FAILURE);
@@ -126,7 +126,7 @@ void Display::create_window()
     if (it == end) {
         spdlog::critical("GPU does not support the required pixel format");
         SDL_DestroyWindow(window);
-        window = NULL;
+        window = nullptr;
         quit(EXIT_FAILURE);
     }
 
@@ -134,7 +134,7 @@ void Display::create_window()
     if (!(ri.flags & SDL_RENDERER_TARGETTEXTURE)) {
         spdlog::critical("GPU does not support rendering to texture");
         SDL_DestroyWindow(window);
-        window = NULL;
+        window = nullptr;
         quit(EXIT_FAILURE);
     }
 
@@ -153,13 +153,13 @@ void Display::create_window()
 
 void Display::close()
 {
-    if (renderer != NULL) {
+    if (renderer != nullptr) {
         SDL_DestroyRenderer(renderer);
-        renderer = NULL;
+        renderer = nullptr;
     }
-    if (window != NULL) {
+    if (window != nullptr) {
         SDL_DestroyWindow(window);
-        window = NULL;
+        window = nullptr;
     }
 
     SDL_Quit();
@@ -270,7 +270,7 @@ void Gamepad::Controller::connect(bool raise_error)
         spdlog::debug("Sucessfully connected to gamepad");
         if (config.debug && raise_error) {
             char *mapping = SDL_GameControllerMappingForDeviceIndex(device_index);
-            if (mapping == NULL)
+            if (mapping == nullptr)
                 spdlog::debug("Could not get mapping");
             else {
                 spdlog::debug("Gamepad mapping: {}", mapping);
@@ -437,7 +437,7 @@ void HotkeyList::add(const char *value)
         return;
 
     std::string keycode_s(string, 1, pos);
-    SDL_Keycode keycode = (SDL_Keycode) strtol(keycode_s.c_str(), NULL, 16);
+    SDL_Keycode keycode = (SDL_Keycode) strtol(keycode_s.c_str(), nullptr, 16);
     if (!keycode)
         return;
     std::string_view command((char*) value + pos + 1);
@@ -475,7 +475,7 @@ void quit(int status)
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, 
             PROJECT_NAME, 
             fmt::format("A critical error occurred. Check the log file '{}' for details", log_path).c_str(), 
-            NULL
+            nullptr
         );
     }
     cleanup();
@@ -592,15 +592,15 @@ int main(int argc, char *argv[])
     // Parse command line
     const char *short_opts = "+c:l:dhv";
     static struct option long_opts[] = {
-        { "config",       required_argument, NULL, 'c' },
-        { "layout",       required_argument, NULL, 'l' },
-        { "debug",        no_argument,       NULL, 'd' },
-        { "help",         no_argument,       NULL, 'h' },
-        { "version",      no_argument,       NULL, 'v' },
+        { "config",       required_argument, nullptr, 'c' },
+        { "layout",       required_argument, nullptr, 'l' },
+        { "debug",        no_argument,       nullptr, 'd' },
+        { "help",         no_argument,       nullptr, 'h' },
+        { "version",      no_argument,       nullptr, 'v' },
         { 0, 0, 0, 0 }
     };
   
-    while ((c = getopt_long(argc, argv, short_opts, long_opts, NULL)) !=-1) {
+    while ((c = getopt_long(argc, argv, short_opts, long_opts, nullptr)) !=-1) {
         switch (c) {
             case 'c':
                 config_path = optarg;

@@ -220,7 +220,7 @@ bool hex_to_color(std::string_view string, SDL_Color &color)
         return false;
     it++;
 
-    Uint32 hex = (Uint32) strtoul(&*it, NULL, 16);
+    Uint32 hex = (Uint32) strtoul(&*it, nullptr, 16);
     if (!hex && strcmp(&*it, "000000"))
         return false;
 
@@ -242,7 +242,7 @@ void join_paths(std::string &out, std::initializer_list<const char*> list)
     path = *it;
     it++;
     for(it; it != list.end(); ++it) {
-        if (*it == NULL)
+        if (*it == nullptr)
             return;
         path /= *it;
     }

@@ -115,8 +115,8 @@ void scmd_shutdown()
         if (!successful) 
             return;
     }
-    InitiateShutdownA(NULL, 
-        NULL, 
+    InitiateShutdownA(nullptr, 
+        nullptr, 
         0, 
         SHUTDOWN_FORCE_OTHERS | SHUTDOWN_POWEROFF | SHUTDOWN_HYBRID,
         SHTDN_REASON_MAJOR_OTHER | SHTDN_REASON_MINOR_OTHER
@@ -131,8 +131,8 @@ void scmd_restart()
         if (!successful) 
             return;
     }
-    InitiateShutdownA(NULL,
-        NULL,
+    InitiateShutdownA(nullptr,
+        nullptr,
         0,
         SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART | SHUTDOWN_HYBRID,
         SHTDN_REASON_MAJOR_OTHER | SHTDN_REASON_MINOR_OTHER
@@ -153,14 +153,14 @@ void scmd_sleep()
 // A function to get the shutdown privilege from Windows
 static bool get_shutdown_privilege()
 {
-    HANDLE token = NULL;
+    HANDLE token = nullptr;
     BOOL ret = OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &token);
     if (!ret) {
         spdlog::error("Could not open process token");
         return false;
     }
     LUID luid;
-    ret = LookupPrivilegeValueA(NULL, SE_SHUTDOWN_NAME, &luid);
+    ret = LookupPrivilegeValueA(nullptr, SE_SHUTDOWN_NAME, &luid);
     if (!ret) {
         spdlog::error("Failed to lookup privilege");
         CloseHandle(token);
@@ -170,7 +170,7 @@ static bool get_shutdown_privilege()
     tp.PrivilegeCount = 1;
     tp.Privileges[0].Luid = luid;
     tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-    ret = AdjustTokenPrivileges(token, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL);
+    ret = AdjustTokenPrivileges(token, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr);
     if (!ret) {
         spdlog::error("Failed to adjust token privileges");
         CloseHandle(token);
@@ -213,7 +213,7 @@ void check_exit_hotkey(SDL_SysWMmsg *msg)
     if (msg->msg.win.msg == WM_HOTKEY) {
         spdlog::debug("Exit hotkey detected");
         HWND hwnd = GetForegroundWindow();
-        if (hwnd == NULL) {
+        if (hwnd == nullptr) {
             spdlog::error("Could not get top window");
             return;
         }

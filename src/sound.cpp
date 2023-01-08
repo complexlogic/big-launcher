@@ -14,14 +14,14 @@ extern Config config;
 
 SoundBite::SoundBite()
 {
-    chunk = NULL;
+    chunk = nullptr;
     frequency = -1;
     channels = -1;
 }
 
 void SoundBite::free_chunk()
 {
-    if (chunk != NULL) {
+    if (chunk != nullptr) {
         if (!chunk->allocated)
             free(chunk->abuf);
         Mix_FreeChunk(chunk);
@@ -31,7 +31,7 @@ void SoundBite::free_chunk()
 int SoundBite::load(const std::string &path, int frequency, int channels)
 {
     chunk = Mix_LoadWAV(path.c_str());
-    if (chunk == NULL) {
+    if (chunk == nullptr) {
         spdlog::error("Failed to load audio file '{}'", path);
         return 1;
     }
@@ -78,7 +78,7 @@ int Sound::connect()
                   AUDIO_S16SYS,
                   2,
                   1024,
-                  NULL,
+                  nullptr,
                   SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_CHANNELS_CHANGE
               );
     if (ret == -1) {
@@ -86,7 +86,7 @@ int Sound::connect()
         return 1;
     }
     connected = true;
-    Mix_QuerySpec(&frequency, NULL, &channels);
+    Mix_QuerySpec(&frequency, nullptr, &channels);
 
     // Load audio if needed
     if (click.frequency != frequency || click.channels != channels) {
