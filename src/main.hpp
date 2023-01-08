@@ -17,7 +17,7 @@
 #define APPLICATION_WAIT_PERIOD 100
 #define APPLICATION_TIMEOUT 10000
 
-#define GAMEPAD_DEADZONE 10000
+#define GAMEPAD_DEADZONE 15000
 #define GAMEPAD_REPEAT_DELAY 500
 #define GAMEPAD_REPEAT_INTERVAL 25
 #define PI 3.14159f
@@ -42,58 +42,67 @@ class Display {
         void print_debug_info();
 };
 
-enum ControlType {
-    TYPE_LSTICK,
-    TYPE_RSTICK,
-    TYPE_BUTTON,
-    TYPE_TRIGGER
-};
-
-enum StickDirection {
-    DIRECTION_NONE = -1,
-    DIRECTION_XM,
-    DIRECTION_XP,
-    DIRECTION_YM,
-    DIRECTION_YP,
-};
-
-struct Stick {
-    ControlType type;
-    std::array<SDL_GameControllerAxis, 2> axes;
-    Stick(ControlType type, std::array<SDL_GameControllerAxis, 2> axes) : type(type), axes(axes){};
-};
-
-struct GamepadInfo{
-    const char *label;
-    ControlType type;
-    StickDirection direction;
-    int index;
-};
-
-enum AxisType{
-    AXIS_X,
-    AXIS_Y,
-};
-
-struct GamepadControl {
-    ControlType    type;
-    int            index;
-    StickDirection direction;
-    int            repeat;
-    const char     *label;
-    std::string    command;
-    GamepadControl(ControlType type, int index, StickDirection direction, const char *label, const char *cmd) 
-    : type(type), index(index), direction(direction), repeat(0), label(label), command(cmd){};
-};
-
-
 class Gamepad {
     private:
-        SDL_GameController *controller;
+        struct Controller {
+            SDL_GameController *gc = nullptr;
+            int device_index;
+            int id;
+            bool connected = false;
+
+            Controller(int device_index) : device_index(device_index), id((int) SDL_JoystickGetDeviceInstanceID(device_index)) {}
+            void connect(bool raise_error);
+            void disconnect();
+        };
+
+        enum AxisType{
+            X,
+            Y,
+        };
+
+        struct GamepadControl {
+            enum Type {
+                LSTICK,
+                RSTICK,
+                BUTTON,
+                TRIGGER
+            };
+
+            enum Direction {
+                NONE = -1,
+                XM,
+                XP,
+                YM,
+                YP
+            };
+            
+            Type                       type;
+            int                        index;
+            GamepadControl::Direction  direction;
+            int                        repeat = 0;
+            std::string                label;
+            std::string                command;
+            GamepadControl(Type type, int index, GamepadControl::Direction direction, const std::string &label, const char *cmd) 
+            : type(type), index(index), direction(direction), label(label), command(cmd) {}
+        };
+
+        struct Stick {
+            GamepadControl::Type type;
+            std::array<SDL_GameControllerAxis, 2> axes;
+            Stick(GamepadControl::Type type, std::array<SDL_GameControllerAxis, 2> axes) : type(type), axes(axes) {}
+        };
+
+        struct GamepadInfo {
+            GamepadControl::Type type;
+            GamepadControl::Direction direction;
+            int index;
+        };
+
+        std::vector<Controller> controllers;
         std::vector<GamepadControl> controls;
         std::vector<Stick> sticks;
         std::array<std::array<int, 2>, 2> axis_values;
-        GamepadControl *selected_axis;
+        GamepadControl *selected_axis = nullptr;
 #ifdef __unix__
         constexpr static float max_opposing = sin((GAMEPAD_AXIS_RANGE / 2.f) * PI / 180.f);
 #else
@@ -104,11 +113,11 @@ class Gamepad {
 
     public:
         bool connected;
-        Gamepad();
         int init();
         void connect(int device_index, bool raise_error);
-        void disconnect(void);
+        void disconnect(int id);
         void add_control(const char *label, const char *cmd);
+        void check_state();
         void poll();
 };
 

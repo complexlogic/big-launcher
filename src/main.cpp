@@ -2,6 +2,7 @@
 #include <string>
 #include <algorithm>
 #include <filesystem>
+#include <unordered_map>
 #include <getopt.h>
 #include <stdlib.h>
 #include <fmt/core.h>
@@ -32,7 +33,6 @@ char *executable_dir;
 std::string log_path;
 
 State state = { false };
-
 
 Display::Display()
 {
@@ -180,12 +180,6 @@ void Display::print_debug_info()
     );
 }
 
-Gamepad::Gamepad()
-{
-    controller = NULL;
-    selected_axis = NULL;
-}
-
 int Gamepad::init()
 {
     spdlog::debug("Initializing game controller subsystem...");
@@ -212,63 +206,116 @@ int Gamepad::init()
 
 void Gamepad::connect(int device_index, bool raise_error)
 {
-    controller = SDL_GameControllerOpen(device_index);
-    if (controller == NULL) {
-        connected = false;
-        if (raise_error) {
-            spdlog::error("Could not connect to gamepad");
-            spdlog::error("SDL Error: {}", SDL_GetError());
+    if (device_index < 0) {
+        for (int i = 0; i < SDL_NumJoysticks(); i++) {
+            if (SDL_IsGameController(i)) {
+                Controller controller(i);
+                controller.connect(raise_error);
+                if (controller.connected)
+                    controllers.push_back(controller);
+            }
         }
-        return;
     }
-    connected = true;
-    spdlog::debug("Sucessfully connected to gamepad");
-    if (config.debug && raise_error) {
-        char *mapping = SDL_GameControllerMappingForDeviceIndex(device_index);
-        if (mapping == NULL)
-            spdlog::debug("Could not get mapping");
-        else
-            spdlog::debug("Gamepad mapping: {}", mapping);
-            SDL_free(mapping);
+    else {
+        Controller controller(device_index);
+        controller.connect(raise_error);
+        if (controller.connected)
+            controllers.push_back(controller);
+    }
+    check_state();
+}
+
+void Gamepad::disconnect(int id)
+{
+    if (id < 0) {
+        for (Controller &controller : controllers)
+            controller.disconnect();
+        controllers.clear();
+    }
+    else {
+        auto it = std::find_if(controllers.begin(),
+                      controllers.end(),
+                      [&](const Controller &c){ return c.id == id; }
+                  );
+        if (it != controllers.end()) {
+            if (it->connected)
+                it->disconnect();
+            controllers.erase(it);
+        }
+    }
+    check_state();
+}
+
+void Gamepad::check_state()
+{
+    bool connected = false;
+    for (const Controller &controller : controllers) {
+        if (controller.connected) {
+            connected = true;
+            break;
+        }
+    }
+    this->connected = connected;
+}
+
+void Gamepad::Controller::connect(bool raise_error)
+{
+    gc = SDL_GameControllerOpen(device_index);
+    connected = gc != nullptr;
+    if (!connected && raise_error) {
+        spdlog::error("Could not connect to gamepad");
+        spdlog::error("SDL Error: {}", SDL_GetError());
+    }
+    else if (connected && config.debug) {
+        spdlog::debug("Sucessfully connected to gamepad");
+        if (config.debug && raise_error) {
+            char *mapping = SDL_GameControllerMappingForDeviceIndex(device_index);
+            if (mapping == NULL)
+                spdlog::debug("Could not get mapping");
+            else {
+                spdlog::debug("Gamepad mapping: {}", mapping);
+                SDL_free(mapping);
+            }
+        }
     }
 }
 
-void Gamepad::disconnect()
+void Gamepad::Controller::disconnect()
 {
-    SDL_GameControllerClose(controller);
-    controller = NULL;
+    SDL_GameControllerClose(gc);
+    gc = nullptr;
     connected = false;
     spdlog::debug("Disconnected gamepad");
 }
 
 void Gamepad::add_control(const char *label, const char *cmd)
 {
-    static const GamepadInfo infos[] = {
-        {"LStickX-",         TYPE_LSTICK,  DIRECTION_XM,   SDL_CONTROLLER_AXIS_LEFTX},
-        {"LStickX+",         TYPE_LSTICK,  DIRECTION_XP,   SDL_CONTROLLER_AXIS_LEFTX},
-        {"LStickY-",         TYPE_LSTICK,  DIRECTION_YM,   SDL_CONTROLLER_AXIS_LEFTY},
-        {"LStickY+",         TYPE_LSTICK,  DIRECTION_YP,   SDL_CONTROLLER_AXIS_LEFTY},
-        {"RStickX-",         TYPE_RSTICK,  DIRECTION_XM,   SDL_CONTROLLER_AXIS_RIGHTX},
-        {"RStickX+",         TYPE_RSTICK,  DIRECTION_XP,   SDL_CONTROLLER_AXIS_RIGHTX},
-        {"RStickY-",         TYPE_RSTICK,  DIRECTION_YM,   SDL_CONTROLLER_AXIS_RIGHTY},
-        {"RStickY+",         TYPE_RSTICK,  DIRECTION_YP,   SDL_CONTROLLER_AXIS_RIGHTY},
-        {"LTrigger",         TYPE_TRIGGER, DIRECTION_NONE, SDL_CONTROLLER_AXIS_TRIGGERLEFT},
-        {"RTrigger",         TYPE_TRIGGER, DIRECTION_NONE, SDL_CONTROLLER_AXIS_TRIGGERRIGHT},
-        {"ButtonA",          TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_A},
-        {"ButtonB",          TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_B},
-        {"ButtonX",          TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_X},
-        {"ButtonY",          TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_Y},
-        {"ButtonBack",       TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_BACK},
-        {"ButtonGuide",      TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_GUIDE},
-        {"ButtonStart",      TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_START},
-        {"ButtonLStick",     TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_LEFTSTICK},
-        {"ButtonRStick",     TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_RIGHTSTICK},
-        {"ButtonLShoulder",  TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_LEFTSHOULDER},
-        {"ButtonRShoulder",  TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER},
-        {"ButtonDPadUp",     TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_DPAD_UP},
-        {"ButtonDPadDown",   TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_DPAD_DOWN},
-        {"ButtonDPadLeft",   TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_DPAD_LEFT},
-        {"ButtonDPadRight",  TYPE_BUTTON,  DIRECTION_NONE, SDL_CONTROLLER_BUTTON_DPAD_RIGHT}
+      static const std::unordered_map<std::string, GamepadInfo> infos = {
+        {"LStickX-",         {GamepadControl::Type::LSTICK,  GamepadControl::Direction::XM,   SDL_CONTROLLER_AXIS_LEFTX}},
+        {"LStickX+",         {GamepadControl::Type::LSTICK,  GamepadControl::Direction::XP,   SDL_CONTROLLER_AXIS_LEFTX}},
+        {"LStickY-",         {GamepadControl::Type::LSTICK,  GamepadControl::Direction::YM,   SDL_CONTROLLER_AXIS_LEFTY}},
+        {"LStickY+",         {GamepadControl::Type::LSTICK,  GamepadControl::Direction::YP,   SDL_CONTROLLER_AXIS_LEFTY}},
+        {"RStickX-",         {GamepadControl::Type::RSTICK,  GamepadControl::Direction::XM,   SDL_CONTROLLER_AXIS_RIGHTX}},
+        {"RStickX+",         {GamepadControl::Type::RSTICK,  GamepadControl::Direction::XP,   SDL_CONTROLLER_AXIS_RIGHTX}},
+        {"RStickY-",         {GamepadControl::Type::RSTICK,  GamepadControl::Direction::YM,   SDL_CONTROLLER_AXIS_RIGHTY}},
+        {"RStickY+",         {GamepadControl::Type::RSTICK,  GamepadControl::Direction::YP,   SDL_CONTROLLER_AXIS_RIGHTY}},
+        {"LTrigger",         {GamepadControl::Type::TRIGGER, GamepadControl::Direction::NONE, SDL_CONTROLLER_AXIS_TRIGGERLEFT}},
+        {"RTrigger",         {GamepadControl::Type::TRIGGER, GamepadControl::Direction::NONE, SDL_CONTROLLER_AXIS_TRIGGERRIGHT}},
+        {"ButtonA",          {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_A}},
+        {"ButtonB",          {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_B}},
+        {"ButtonX",          {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_X}},
+        {"ButtonY",          {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_Y}},
+        {"ButtonBack",       {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_BACK}},
+        {"ButtonGuide",      {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_GUIDE}},
+        {"ButtonStart",      {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_START}},
+        {"ButtonLStick",     {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_LEFTSTICK}},
+        {"ButtonRStick",     {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_RIGHTSTICK}},
+        {"ButtonLShoulder",  {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_LEFTSHOULDER}},
+        {"ButtonRShoulder",  {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER}},
+        {"ButtonDPadUp",     {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_DPAD_UP}},
+        {"ButtonDPadDown",   {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_DPAD_DOWN}},
+        {"ButtonDPadLeft",   {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_DPAD_LEFT}},
+        {"ButtonDPadRight",  {GamepadControl::Type::BUTTON,  GamepadControl::Direction::NONE, SDL_CONTROLLER_BUTTON_DPAD_RIGHT}}
     };
 
     static const SDL_GameControllerAxis opposing_axes[] = {
@@ -278,84 +325,77 @@ void Gamepad::add_control(const char *label, const char *cmd)
         SDL_CONTROLLER_AXIS_RIGHTX,
     };
 
-    auto it = std::find_if(std::cbegin(infos), 
-                  std::cend(infos), 
-                  [&](const GamepadInfo &info) {return strcmp(label, info.label) == 0;}
-              );
-    if (it != std::cend(infos)) {
-        controls.push_back({it->type, it->index, it->direction, it->label, cmd});
+    auto it = infos.find(label);
+    if (it != infos.end()) {
+        const GamepadInfo &info = it->second;
+        controls.push_back(GamepadControl(info.type, info.index, info.direction, it->first, cmd));
 
         // Add control stick for axis if it doesn't already exist
-        if (it->type == TYPE_LSTICK || it->type == TYPE_RSTICK) {
-            SDL_GameControllerAxis opposing_axis = opposing_axes[it->index];
+        if (info.type == GamepadControl::Type::LSTICK || info.type == GamepadControl::Type::RSTICK) {
+            SDL_GameControllerAxis opposing_axis = opposing_axes[info.index];
             auto a = std::find_if(sticks.begin(),
                         sticks.end(),
-                        [&](auto &stick) {return stick.axes[0] == it->index || stick.axes[1] == it->index;}
+                        [&](auto &stick) {return stick.axes[0] == info.index || stick.axes[1] == info.index;}
                      );
-            if (a == sticks.end()) {
-                sticks.push_back(
-                    {
-                        (ControlType) it->type,
-                        {(SDL_GameControllerAxis) it->index, opposing_axis}
-                    }
-                );
-            }
+            if (a == sticks.end())
+                sticks.push_back(Stick(info.type, {(SDL_GameControllerAxis) info.index, opposing_axis}));
         }
     }
 }
 
 void Gamepad::poll()
 {
+    Controller &controller = controllers.front();
     // Poll sticks
     if (!sticks.empty()) {
         AxisType axis_type;
-        for (const auto &stick : sticks) {
+        for (auto stick = sticks.begin(); stick != sticks.end() && !selected_axis; ++stick) {
+            for (auto controller = controllers.begin(); controller != controllers.end() && !selected_axis; ++controller) {
+                // Poll individual axes in stick
+                for (auto axis : stick->axes) {
+                    axis_type = (axis == SDL_CONTROLLER_AXIS_LEFTX || axis == SDL_CONTROLLER_AXIS_RIGHTX) ? AxisType::X : AxisType::Y;
+                    axis_values[stick->type][axis_type] = SDL_GameControllerGetAxis(controller->gc, axis);
+                }
+                AxisType max_axis = (abs(axis_values[stick->type][static_cast<int>(AxisType::X)]) >= abs(axis_values[stick->type][static_cast<int>(AxisType::Y)])) ? AxisType::X : AxisType::Y;
+                if (abs(axis_values[stick->type][max_axis]) < GAMEPAD_DEADZONE)
+                    continue;
+                
+                // Determine direction of stick movement
+                GamepadControl::Direction direction;
+                if (max_axis == AxisType::X) {
+                    if (axis_values[stick->type][static_cast<int>(AxisType::X)] < 0)
+                        direction = GamepadControl::Direction::XM;
+                    else
+                        direction = GamepadControl::Direction::XP;
+                }
+                else if (max_axis == AxisType::Y) {
+                    if (axis_values[stick->type][static_cast<int>(AxisType::Y)] < 0)
+                        direction = GamepadControl::Direction::YM;
+                    else
+                        direction = GamepadControl::Direction::YP;
+                }
 
-            // Poll individual axes in stick
-            for (auto axis : stick.axes) {
-                axis_type = (axis == SDL_CONTROLLER_AXIS_LEFTX || axis == SDL_CONTROLLER_AXIS_RIGHTX) ? AXIS_X : AXIS_Y;
-                axis_values[stick.type][axis_type] = SDL_GameControllerGetAxis(controller, axis);
+                // Save set selected axis if stick press is within range of a control
+                auto it = std::find_if(controls.begin(),
+                            controls.end(),
+                            [&](auto control){return stick->type == control.type && direction == control.direction;}
+                        );
+                if (it != controls.end()) {
+                    AxisType min_axis = (max_axis == AxisType::X) ? AxisType::Y : AxisType::X;
+                    if (abs(axis_values[stick->type][min_axis]) < abs((int) std::round((float) axis_values[stick->type][max_axis] * max_opposing)))
+                        selected_axis = &*it;
+                }
             }
-            AxisType max_axis = (abs(axis_values[stick.type][AXIS_X]) >= abs(axis_values[stick.type][AXIS_Y])) ? AXIS_X : AXIS_Y;
-            if (abs(axis_values[stick.type][max_axis]) < GAMEPAD_DEADZONE)
-                continue;
-            
-            // Determine direction of stick movement
-            StickDirection direction;
-            if (max_axis == AXIS_X) {
-                if (axis_values[stick.type][AXIS_X] < 0)
-                    direction = DIRECTION_XM;
-                else
-                    direction = DIRECTION_XP;
-            }
-            else if (max_axis == AXIS_Y) {
-                if (axis_values[stick.type][AXIS_Y] < 0)
-                    direction = DIRECTION_YM;
-                else
-                    direction = DIRECTION_YP;
-            }
-
-            // Save set selected axis if stick press is within range of a control
-            auto it = std::find_if(controls.begin(),
-                          controls.end(),
-                          [&](auto control){return stick.type == control.type && direction == control.direction;}
-                      );
-            if (it != controls.end()) {
-                AxisType min_axis = (max_axis == AXIS_X) ? AXIS_Y : AXIS_X;
-                if (abs(axis_values[stick.type][min_axis]) < abs((int) std::round((float) axis_values[stick.type][max_axis] * max_opposing)))
-                    selected_axis = &*it;
-            }
-
         }
     }
 
 
     // Check each control
     for (GamepadControl &control : controls) {
-        if (control.type == TYPE_LSTICK || control.type == TYPE_RSTICK) {
+        if (control.type == GamepadControl::Type::LSTICK || control.type == GamepadControl::Type::RSTICK) {
             if (&control == selected_axis) { // We already polled for the stick
                 control.repeat++;
-                selected_axis = NULL;
+                selected_axis = nullptr;
             }
             else
                 control.repeat = 0;
@@ -363,11 +403,15 @@ void Gamepad::poll()
 
         // Poll buttons
         else {
-            if ((control.type == TYPE_BUTTON && SDL_GameControllerGetButton(controller, (SDL_GameControllerButton) control.index)) ||
-            (control.type == TYPE_TRIGGER && SDL_GameControllerGetAxis(controller, (SDL_GameControllerAxis) control.index) > GAMEPAD_DEADZONE))
-                control.repeat++;
-            else
-                control.repeat = 0;
+            bool pressed = false;
+            for (Controller &controller : controllers) {
+                if ((control.type == GamepadControl::Type::BUTTON && SDL_GameControllerGetButton(controller.gc, (SDL_GameControllerButton) control.index)) ||
+                (control.type == GamepadControl::Type::TRIGGER && SDL_GameControllerGetAxis(controller.gc, (SDL_GameControllerAxis) control.index) > GAMEPAD_DEADZONE)) {
+                    pressed = true;
+                    break;
+                }
+            }
+            control.repeat = pressed ? control.repeat + 1 : 0;
         }
 
         if (control.repeat == 1) {
@@ -397,6 +441,7 @@ void HotkeyList::add(const char *value)
     if (!keycode)
         return;
     std::string_view command((char*) value + pos + 1);
+    
 #ifdef _WIN32
     if (command == ":exit") {
         set_exit_hotkey(keycode);
@@ -517,7 +562,7 @@ static inline void pre_launch()
     if (sound.connected)
         sound.disconnect();
     if (gamepad.connected)
-        gamepad.disconnect();
+        gamepad.disconnect(-1);
 #ifdef _WIN32
     if (has_exit_hotkey())
         SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
@@ -529,7 +574,7 @@ static inline void post_launch()
     if (config.sound_enabled)
         sound.connect();
     if (config.gamepad_enabled)
-        gamepad.connect(config.gamepad_index, false);
+        gamepad.connect(-1, false);
 #ifdef _WIN32
     SDL_EventState(SDL_SYSWMEVENT, SDL_DISABLE);
 #endif
@@ -725,7 +770,7 @@ int main(int argc, char *argv[])
                                 event.jdevice.which
                             );
                         }
-                        if (event.jdevice.which == config.gamepad_index)
+                        if (event.jdevice.which == config.gamepad_index || config.gamepad_index < 0)
                             gamepad.connect(event.jdevice.which, true);
                     }
                     else if (config.debug)
@@ -733,8 +778,8 @@ int main(int argc, char *argv[])
                     break;
 
                 case SDL_JOYDEVICEREMOVED:
-                    if (event.jdevice.which == config.gamepad_index)
-                        gamepad.disconnect();
+                    spdlog::debug("Device {} disconnected", event.jdevice.which);
+                    gamepad.disconnect(event.jdevice.which);
                     break;
 
                 case SDL_WINDOWEVENT:

@@ -32,7 +32,7 @@ Hotkey1=#1B;:quit
 
 [Gamepad]
 Enabled=false
-#DeviceIndex=0
+DeviceIndex=-1
 #MappingsFile=
 LStickX-=:left
 LStickX+=:right
