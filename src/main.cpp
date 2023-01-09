@@ -659,7 +659,7 @@ int main(int argc, char *argv[])
             quit(EXIT_FAILURE);
         }
     }
-    else if (!find_file<TYPE_CONFIG>(layout_path, LAYOUT_FILENAME)) {
+    else if (!find_file<FileType::CONFIG>(layout_path, LAYOUT_FILENAME)) {
         spdlog::critical("Could not locate layout file");
         quit(EXIT_FAILURE);
     }
@@ -670,7 +670,7 @@ int main(int argc, char *argv[])
             quit(EXIT_FAILURE);
         }
     }
-    if (!find_file<TYPE_CONFIG>(config_path, CONFIG_FILENAME)) {
+    if (!find_file<FileType::CONFIG>(config_path, CONFIG_FILENAME)) {
         spdlog::critical("Could not locate config file");
         quit(EXIT_FAILURE);
     }
@@ -680,7 +680,7 @@ int main(int argc, char *argv[])
     config.parse(config_path, gamepad, hotkey_list);
     display.init();
     init_svg();
-    if (config.sound_enabled && sound.init())
+    if (config.sound_enabled && !sound.init())
         config.sound_enabled = false;
     if (config.gamepad_enabled && gamepad.init())
         config.gamepad_enabled = false;

@@ -254,7 +254,7 @@ bool find_file(std::string &out, const char *filename)
 {
     static std::vector<const char*> prefixes;
     static std::string str;
-    if constexpr(file_type == TYPE_CONFIG) {
+    if constexpr(file_type == FileType::CONFIG) {
         if (!prefixes.size()) {
 #ifdef __unix__
             prefixes.resize(4);
@@ -272,7 +272,7 @@ bool find_file(std::string &out, const char *filename)
         }
     }
 
-    if constexpr(file_type == TYPE_FONT) {
+    if constexpr(file_type == FileType::FONT) {
         if (!prefixes.size()) {
 #ifdef __unix__
             prefixes.resize(2);
@@ -290,7 +290,7 @@ bool find_file(std::string &out, const char *filename)
         }
     }
 
-    if constexpr(file_type == TYPE_AUDIO) {
+    if constexpr(file_type == FileType::AUDIO) {
         if (!prefixes.size()) {
 #ifdef __unix__
             prefixes.resize(2);
@@ -315,6 +315,6 @@ bool find_file(std::string &out, const char *filename)
     out.clear();
     return false;
 }
-template bool find_file<TYPE_CONFIG>(std::string &out, const char *filename);
-template bool find_file<TYPE_FONT>(std::string &out, const char *filename);
-template bool find_file<TYPE_AUDIO>(std::string &out, const char *filename);
+template bool find_file<FileType::CONFIG>(std::string &out, const char *filename);
+template bool find_file<FileType::FONT>(std::string &out, const char *filename);
+template bool find_file<FileType::AUDIO>(std::string &out, const char *filename);

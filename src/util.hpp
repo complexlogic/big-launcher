@@ -8,10 +8,10 @@
 
 #define MATCH(a,b) !strcmp(a,b)
 
-enum FileType{
-    TYPE_CONFIG,
-    TYPE_FONT,
-    TYPE_AUDIO
+enum class FileType{
+    CONFIG,
+    FONT,
+    AUDIO
 };
 
 struct ConfigInfo {

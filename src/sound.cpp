@@ -9,17 +9,9 @@
 #include "sound.hpp"
 #include "util.hpp"
 
-extern char *executable_dir;
 extern Config config;
 
-SoundBite::SoundBite()
-{
-    chunk = nullptr;
-    frequency = -1;
-    channels = -1;
-}
-
-void SoundBite::free_chunk()
+void Sound::Chunk::free_chunk()
 {
     if (chunk != nullptr) {
         if (!chunk->allocated)
@@ -28,50 +20,40 @@ void SoundBite::free_chunk()
     }
 }
 
-int SoundBite::load(const std::string &path, int frequency, int channels)
+bool Sound::Chunk::load(const std::string &path, int frequency, int channels)
 {
     chunk = Mix_LoadWAV(path.c_str());
     if (chunk == nullptr) {
         spdlog::error("Failed to load audio file '{}'", path);
-        return 1;
+        return false;
     }
     this->frequency = frequency;
     this->channels = channels;
-    return 0;
+    return true;
 }
 
-
-Sound::Sound()
-{
-    frequency = -1;
-    channels = -1;
-    connected = false;
-}
-
-int Sound::init()
+bool Sound::init()
 {
     if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
         spdlog::error("Failed to initialize audio");
-        return 1;
+        return false;
     }
     spdlog::debug("Successfully initialized audio");
 
     // Locate sound files but don't load them yet
-    std::string sound_dir_exe;
-    join_paths(sound_dir_exe, {executable_dir, "assets", "sounds"});
-    if (!find_file<TYPE_AUDIO>(click_path, CLICK_FILENAME)) {
+    if (!find_file<FileType::AUDIO>(click_path, CLICK_FILENAME)) {
         spdlog::error("Could not locate audio file '{}'", CLICK_FILENAME);
-        return 1;
+        return false;
     }
-    if (!find_file<TYPE_AUDIO>(select_path, SELECT_FILENAME)) {
+    if (!find_file<FileType::AUDIO>(select_path, SELECT_FILENAME)) {
         spdlog::error("Could not locate audio file '{}'", SELECT_FILENAME);
-        return 1;
+        return false;
     }
 
-    return this->connect();
+    return connect();
 }
 
-int Sound::connect()
+bool Sound::connect()
 {
     spdlog::debug("Opening audio device...");
     int ret = Mix_OpenAudioDevice(48000,
@@ -83,7 +65,7 @@ int Sound::connect()
               );
     if (ret == -1) {
         spdlog::error("Could not connect to audio device");
-        return 1;
+        return false;
     }
     connected = true;
     Mix_QuerySpec(&frequency, nullptr, &channels);
@@ -91,27 +73,27 @@ int Sound::connect()
     // Load audio if needed
     if (click.frequency != frequency || click.channels != channels) {
         click.free_chunk();
-        if (click.load(click_path, frequency, channels))
-            return 1;
+        if (!click.load(click_path, frequency, channels))
+            return false;
     }
     if (select.frequency != frequency || select.channels != channels) {
         select.free_chunk();
-        if (select.load(select_path, frequency, channels))
-            return 1;
+        if (!select.load(select_path, frequency, channels))
+            return false;
     }
 
     // Set volume
     if (config.sound_volume != MAX_VOLUME)
-        this->set_volume(0, config.sound_volume);
+        set_volume(0, config.sound_volume);
 
     spdlog::debug("Successfully opened {} channel audio at {} Hz", channels, frequency);
-    return 0;
+    return true;
 }
 
-int Sound::set_volume(int channel, int volume)
+void Sound::set_volume(int channel, int volume)
 {
     if (volume > MAX_VOLUME || volume < 0)
-        return 1;
+        return;
 
     constexpr auto generate_array = []() {
         double a = pow(10.f, (double) RANGE_DB / 20.f);
@@ -129,7 +111,6 @@ int Sound::set_volume(int channel, int volume)
     static std::array<int, MAX_VOLUME + 1> volume_array = generate_array();
     
     Mix_Volume(channel, volume_array[volume]);
-    return 0;
 }
 
 void Sound::disconnect()

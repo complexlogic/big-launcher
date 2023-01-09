@@ -24,7 +24,6 @@ extern "C" void libxml2_error_handler(void *ctx, const char *msg, ...);
 extern Config config;
 extern Sound sound;
 
-
 // Wrapper for libxml2 error messages
 void libxml2_error_handler(void *ctx, const char *msg, ...)
 {
@@ -52,14 +51,14 @@ void libxml2_error_handler(void *ctx, const char *msg, ...)
 }
 
 // Custom card
-void Entry::add_card(const char *path)
+void Layout::Menu::Entry::add_card(const char *path)
 {
     card_type = CardType::CUSTOM;
     this->path = path;
 }
 
 // Generated card, color background
-void Entry::add_card(SDL_Color &background_color, const char *path)
+void Layout::Menu::Entry::add_card(SDL_Color &background_color, const char *path)
 {
     card_type = CardType::GENERATED;
     icon_path = path;
@@ -67,14 +66,14 @@ void Entry::add_card(SDL_Color &background_color, const char *path)
 }
 
 // Generated card, image background
-void Entry::add_card(const char *background_path, const char *icon_path)
+void Layout::Menu::Entry::add_card(const char *background_path, const char *icon_path)
 {
     card_type = CardType::GENERATED;
     path = background_path;
     this->icon_path = icon_path;
 }
 
-void Entry::add_margin(const char *value)
+void Layout::Menu::Entry::add_margin(const char *value)
 {
     std::string_view string = value;
     if (string.back() != '%')
@@ -86,7 +85,7 @@ void Entry::add_margin(const char *value)
     icon_margin = percent;
 }
 
-int Menu::parse(xmlNodePtr node)
+int Layout::Menu::parse(xmlNodePtr node)
 {
     for (node = node->xmlChildrenNode; node != nullptr; node = node->next) {
         if (!xmlStrcmp(node->name, (const xmlChar*) "entry"))
@@ -105,7 +104,7 @@ int Menu::parse(xmlNodePtr node)
     return 0;
 }
 
-void Menu::add_entry(xmlNodePtr node)
+void Layout::Menu::add_entry(xmlNodePtr node)
 {
     xmlChar *entry_title = xmlGetProp(node, (const xmlChar*) "title");
     if (entry_title == nullptr) {
@@ -210,13 +209,12 @@ void Menu::add_entry(xmlNodePtr node)
     }
 }
 
-inline size_t Menu::num_entries()
+inline size_t Layout::Menu::num_entries()
 {
     return entry_list.size();
 }
 
-
-bool Menu::render_surfaces(int shadow_offset, int w, int h, int x_start, int y_start, int spacing, int screen_height)
+bool Layout::Menu::render_surfaces(int shadow_offset, int w, int h, int x_start, int y_start, int spacing, int screen_height)
 {
     int column = 0;
     int x = x_start;
@@ -369,7 +367,7 @@ end:
     return ret;
 }
 
-void Menu::render_card_textures(SDL_Renderer *renderer, SDL_Texture *card_shadow_texture, int shadow_offset, int card_w, int card_h)
+void Layout::Menu::render_card_textures(SDL_Renderer *renderer, SDL_Texture *card_shadow_texture, int shadow_offset, int card_w, int card_h)
 {
     SDL_Texture *texture = nullptr;
     SDL_Rect rect = {shadow_offset, shadow_offset, card_w, card_h};
@@ -436,7 +434,7 @@ void Layout::render_error_texture()
     for (SidebarEntry *entry : list) {
         if (entry->type == SidebarEntry::Type::MENU) {
             Menu *menu = (Menu*) entry;
-            for (Entry &entry : menu->entry_list) {
+            for (Menu::Entry &entry : menu->entry_list) {
                 if (entry.card_error)
                     entry.texture = error_texture;
             }
@@ -444,7 +442,7 @@ void Layout::render_error_texture()
     }
 }
 
-void Menu::draw_entries(SDL_Renderer *renderer, int y_min, int y_max)
+void Layout::Menu::draw_entries(SDL_Renderer *renderer, int y_min, int y_max)
 {
     SDL_Rect src_rect;
     SDL_Rect dst_rect;
@@ -503,7 +501,7 @@ void Menu::draw_entries(SDL_Renderer *renderer, int y_min, int y_max)
     }
 }
 
-void Menu::print_entries()
+void Layout::Menu::print_entries()
 {
     for (Entry &entry : entry_list) {
         fmt::print("Entry {}:\n", &entry - &entry_list[0]);
@@ -587,7 +585,7 @@ void Layout::parse(const std::string &file)
 #define SHADOW_OFFSET_INTERCEPT 3.15f
 
 
-void SidebarHighlight::render_surface(int w, int h, int rx)
+void Layout::SidebarHighlight::render_surface(int w, int h, int rx)
 {
     this->w = w;
     this->h = h;
@@ -619,7 +617,7 @@ void SidebarHighlight::render_surface(int w, int h, int rx)
 }
 
 
-void SidebarHighlight::render_texture(SDL_Renderer *renderer)
+void Layout::SidebarHighlight::render_texture(SDL_Renderer *renderer)
 {
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     free_surface(surface);
@@ -627,7 +625,7 @@ void SidebarHighlight::render_texture(SDL_Renderer *renderer)
 }
 
 
-void MenuHighlight::render_surface(int x, int y, int w, int h, int t, int shadow_offset)
+void Layout::MenuHighlight::render_surface(int x, int y, int w, int h, int t, int shadow_offset)
 {
     int w_inner = w - 2*t;
     int h_inner = h - 2*t;
@@ -672,14 +670,14 @@ void MenuHighlight::render_surface(int x, int y, int w, int h, int t, int shadow
 }
 
 
-void MenuHighlight::render_texture(SDL_Renderer *renderer)
+void Layout::MenuHighlight::render_texture(SDL_Renderer *renderer)
 {
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     free_surface(surface);
 }
 
 
-PressedEntry::PressedEntry(Entry &entry) : entry(entry)
+Layout::PressedEntry::PressedEntry(Menu::Entry &entry) : entry(entry)
 {
     original_rect = entry.rect;
     total = (int) std::round((float) original_rect.w * ENTRY_SHRINK_DISTANCE);
@@ -691,7 +689,7 @@ PressedEntry::PressedEntry(Entry &entry) : entry(entry)
 }
 
 
-bool PressedEntry::update()
+bool Layout::PressedEntry::update()
 {
     bool ret = false;
     Uint32 current_ticks = SDL_GetTicks();
@@ -1116,7 +1114,7 @@ void Layout::select()
         }
     }
     else if (selection_mode == SelectionMode::MENU && pressed_entry == nullptr) {
-        Entry &entry = *(current_menu->current_entry);
+        Menu::Entry &entry = *(current_menu->current_entry);
         spdlog::debug("User selected entry '{}'", entry.title);
         pressed_entry = new PressedEntry(entry);
         sound.play_select();

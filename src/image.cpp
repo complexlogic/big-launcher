@@ -140,7 +140,7 @@ SDL_Surface *rasterize_svg_image(NSVGimage *image, int w, int h)
 int Font::load(const char *file, int height)
 {
     std::string font_path;
-    if (!find_file<TYPE_FONT>(font_path, file)) {
+    if (!find_file<FileType::FONT>(font_path, file)) {
         spdlog::critical("Could not locate font '{}'", file);
         quit(EXIT_FAILURE);
     }
