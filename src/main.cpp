@@ -49,6 +49,7 @@ void Display::init()
     setenv("SDL_VIDEODRIVER", "wayland,x11", 0);
 #endif
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY,"1");
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
