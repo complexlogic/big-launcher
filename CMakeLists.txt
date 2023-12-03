@@ -11,6 +11,15 @@ if (WIN32)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:MULTIPLE") # Workaround for Nanosvg and SDL_image header conflicts
 endif ()
 
+option(EXTRA_WARNINGS "Enable extra compiler warnings" OFF)
+if (EXTRA_WARNINGS)
+  if (MSVC)
+    add_compile_options(/W4 /WX)
+  else ()
+    add_compile_options(-Wall -Wextra -Wpedantic -Wconversion)
+  endif ()
+endif ()
+
 # Find dependencies
 if (UNIX)
   find_package(PkgConfig MODULE REQUIRED)

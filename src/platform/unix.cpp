@@ -40,7 +40,7 @@ bool start_process(const std::string &command, bool application)
 
             // Check to see if the shell successfully launched
             SDL_Delay(50);
-            pid_t pid = waitpid(child_pid, &status, WNOHANG);
+            waitpid(child_pid, &status, WNOHANG);
             if (WIFEXITED(status) && WEXITSTATUS(status) > 126)
                 return false;
             break;

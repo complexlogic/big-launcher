@@ -25,17 +25,16 @@
 
 class Display {
     public:
-        SDL_Renderer *renderer;
-        SDL_Window *window;
+        SDL_Renderer *renderer = nullptr;
+        SDL_Window *window = nullptr;
         SDL_DisplayMode dm;
         SDL_RendererInfo ri;
 #ifdef _WIN32
         SDL_SysWMinfo wm_info;
 #endif
-        int width;
-        int height;
+        int width = 0;
+        int height = 0;
 
-        Display();
         void init();
         void create_window();
         void close();
@@ -145,8 +144,8 @@ struct Ticks {
 
 
 struct State {
-    bool application_launching;
-    bool application_running;
+    bool application_launching = false;
+    bool application_running = false;
 };
 
 

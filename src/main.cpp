@@ -32,15 +32,7 @@ Ticks ticks;
 char *executable_dir;
 std::string log_path;
 
-State state = { false };
-
-Display::Display()
-{
-    renderer = nullptr;
-    window = nullptr;
-    width = 0;
-    height = 0;
-}
+State state;
 
 void Display::init()
 {
@@ -346,7 +338,6 @@ void Gamepad::add_control(const char *label, const char *cmd)
 
 void Gamepad::poll()
 {
-    Controller &controller = controllers.front();
     // Poll sticks
     if (!sticks.empty()) {
         AxisType axis_type;
