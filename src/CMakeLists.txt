@@ -23,7 +23,7 @@ elseif (WIN32)
 	$<IF:$<TARGET_EXISTS:SDL2_mixer::SDL2_mixer>,SDL2_mixer::SDL2_mixer,SDL2_mixer::SDL2_mixer-static>
 	spdlog::spdlog
 	LibXml2::LibXml2
-	unofficial::inih::inih
+	unofficial::inih::libinih
 	${GETOPT} 
 	PowrProf
   )
