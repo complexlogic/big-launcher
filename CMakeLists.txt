@@ -43,6 +43,8 @@ elseif (WIN32)
   
   find_path(GETOPT_INCLUDE_DIR "getopt.h" REQUIRED)
   find_library(GETOPT getopt REQUIRED)
+
+  add_compile_options("/utf-8")
 endif()
 
 include_directories(${PROJECT_BINARY_DIR})
