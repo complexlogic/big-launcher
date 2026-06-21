@@ -1,6 +1,11 @@
 #include <string>
 #include <cmath>
+#include <fmt/base.h>
+#if FMT_VERSION >= 120200
+#include <fmt/format.h>
+#else
 #include <fmt/core.h>
+#endif
 
 #include "sidebar_highlight.hpp"
 #include "config.hpp"
